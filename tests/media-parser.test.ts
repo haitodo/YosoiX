@@ -140,6 +140,7 @@ describe("media-parser: parseApiResponseForTweets", () => {
             legacy: {
               created_at: "Sun Nov 01 08:00:00 +0000 2026",
               quote_count: 5,
+              retweet_count: 42,
               extended_entities: {
                 media: [
                   { type: "photo", media_url_https: "https://pbs.twimg.com/media/Img1.jpg" },
@@ -161,6 +162,7 @@ describe("media-parser: parseApiResponseForTweets", () => {
     expect(entry.tweetId).toBe("1234567890123456789");
     expect(entry.screenName).toBe("test_photographer");
     expect(entry.quoteCount).toBe(5);
+    expect(entry.retweetCount).toBe(42);
     expect(entry.media).toHaveLength(4);
 
     expect(entry.media[0]).toMatchObject({

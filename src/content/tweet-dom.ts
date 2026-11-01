@@ -36,6 +36,8 @@ export interface TweetDomIdentity {
   screenName?: string;
   /** 引用一覧ページのパス（例: /username/status/1234567890/quotes） */
   quotesPath: string;
+  /** リポスト（リツイート）一覧ページのパス（例: /username/status/1234567890/retweets） */
+  retweetsPath: string;
 }
 
 /**
@@ -109,10 +111,14 @@ function toTweetDomIdentity(parsed: { screenName?: string; tweetId: string }): T
   const quotesPath = parsed.screenName
     ? `/${parsed.screenName}/status/${parsed.tweetId}/quotes`
     : `/i/status/${parsed.tweetId}/quotes`;
+  const retweetsPath = parsed.screenName
+    ? `/${parsed.screenName}/status/${parsed.tweetId}/retweets`
+    : `/i/status/${parsed.tweetId}/retweets`;
   return {
     tweetId: parsed.tweetId,
     screenName: parsed.screenName,
     quotesPath,
+    retweetsPath,
   };
 }
 

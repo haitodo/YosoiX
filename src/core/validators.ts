@@ -193,6 +193,14 @@ function sanitizeBridgeEntry(raw: unknown): TweetMediaCacheEntry | null {
     entry.quoteCount = Math.floor(raw.quoteCount);
   }
 
+  if (
+    typeof raw.retweetCount === "number" &&
+    Number.isFinite(raw.retweetCount) &&
+    raw.retweetCount >= 0
+  ) {
+    entry.retweetCount = Math.floor(raw.retweetCount);
+  }
+
   return entry;
 }
 
@@ -299,6 +307,10 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
       typeof raw.showQuoteListButton === "boolean"
         ? raw.showQuoteListButton
         : DEFAULT_SETTINGS.showQuoteListButton,
+    showRetweetListButton:
+      typeof raw.showRetweetListButton === "boolean"
+        ? raw.showRetweetListButton
+        : DEFAULT_SETTINGS.showRetweetListButton,
     enableMediaDownload:
       typeof raw.enableMediaDownload === "boolean"
         ? raw.enableMediaDownload

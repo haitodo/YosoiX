@@ -112,12 +112,12 @@ flowchart LR
 | `src/core/download-manager.ts` | **実装済** | DL状態機械・混在投稿の部分失敗継続制御 |
 | `src/storage/settings.ts` | **実装済** | `chrome.storage.local` 読み書き＆即時同期購読 |
 | `src/bridge/response-parser.ts`, `src/bridge/main-world.ts` | **実装済** | MAIN world 通信捕捉＆初期バッファ同期 |
-| `src/content/*` (`index.ts`, `dom-observer.ts`, `tweet-dom.ts`, `navigation-controller.ts`, `sidebar-controller.ts`, `quote-list-button.ts`, `media-download-button.ts`) | **実装済** | ISOLATED world DOM 監視・UI注入制御 |
+| `src/content/*` (`index.ts`, `dom-observer.ts`, `tweet-dom.ts`, `navigation-controller.ts`, `sidebar-controller.ts`, `quote-list-button.ts`, `retweet-list-button.ts`, `media-download-button.ts`) | **実装済** | ISOLATED world DOM 監視・UI注入制御 |
 | `src/background/service-worker.ts` | **実装済** | Downloads API 実行・検証・アイコンクリック起動 |
 | `src/styles/content.css` | **基本実装済** | レイアウト制御＋ボタン基本見た目（※微調整可） |
 | `src/options/index.html`, `src/options/options.css`, `src/options/options.ts` | **実装済** | 1ページ完結・ライト/ダーク両対応カードUI |
 | `public/icons/icon16.png`, `icon32.png`, `icon48.png`, `icon128.png` | **実装済** | オリジナル高精細アンチエイリアスPNG |
-| `tests/*.test.ts` | **実装済** | 全5テストファイル・45件の全網羅テストパス |
+| `tests/*.test.ts` | **実装済** | 全6テストファイル・54件の全網羅テストパス |
 
 ---
 

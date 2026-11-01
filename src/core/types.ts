@@ -32,6 +32,8 @@ export interface ExtensionSettings {
   hideRightSidebar: boolean;
   /** 各ツイートに引用リポスト一覧ボタンを表示するか */
   showQuoteListButton: boolean;
+  /** 各ツイートにリツイート（リポスト）一覧ボタンを表示するか */
+  showRetweetListButton: boolean;
   /** 画像・動画ダウンロード機能を有効にするか */
   enableMediaDownload: boolean;
 }
@@ -42,6 +44,7 @@ export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = Object.freeze({
   hiddenNavItems: [],
   hideRightSidebar: false,
   showQuoteListButton: true,
+  showRetweetListButton: true,
   enableMediaDownload: true,
 });
 
@@ -74,6 +77,7 @@ export interface TweetMediaCacheEntry {
   tweetId: string;
   screenName?: string;
   quoteCount?: number;
+  retweetCount?: number;
   media: TweetMediaItem[];
   capturedAt: number;
 }

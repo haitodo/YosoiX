@@ -187,6 +187,7 @@ describe("Core architecture invariants", () => {
       tweetId: "999999999999999999",
       screenName: "outer_user",
       quotesPath: "/outer_user/status/999999999999999999/quotes",
+      retweetsPath: "/outer_user/status/999999999999999999/retweets",
     });
     expect(hasOuterDomMedia(article)).toBe(false);
     expect(findOuterActionBar(article)).not.toBeNull();

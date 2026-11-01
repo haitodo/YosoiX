@@ -181,7 +181,28 @@ function renderOptions(root: HTMLElement): void {
   });
   root.appendChild(quoteCard);
 
-  // 5. メディア: ダウンロードボタン
+  // 5. ツイート: リポスト一覧ボタン
+  const retweetCard = document.createElement("div");
+  retweetCard.className = "section-card";
+  retweetCard.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">リポスト（リツイート）一覧ボタン</h2>
+        <p class="section-desc">各ツイートのアクションバーにリツイート一覧を開くリンクボタンを追加します（引用ボタンの右隣）</p>
+      </div>
+      <label class="switch-label">
+        <input type="checkbox" id="setting-retweet-btn" ${currentSettings.showRetweetListButton ? "checked" : ""} />
+        <span class="switch-slider"></span>
+      </label>
+    </div>
+  `;
+  const retweetInput = retweetCard.querySelector<HTMLInputElement>("#setting-retweet-btn")!;
+  retweetInput.addEventListener("change", () => {
+    void handleSettingChange("showRetweetListButton", retweetInput.checked);
+  });
+  root.appendChild(retweetCard);
+
+  // 6. メディア: ダウンロードボタン
   const mediaCard = document.createElement("div");
   mediaCard.className = "section-card";
   mediaCard.innerHTML = `

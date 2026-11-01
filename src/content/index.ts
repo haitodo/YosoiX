@@ -24,6 +24,13 @@ import {
   removeQuoteListButtonFromBar,
   upsertQuoteListButton,
 } from "./quote-list-button";
+import {
+  handleRetweetButtonClick,
+  removeAllRetweetListButtons,
+  removeRetweetListButtonFromBar,
+  RETWEET_BUTTON_ACTION,
+  upsertRetweetListButton,
+} from "./retweet-list-button";
 import { SidebarController } from "./sidebar-controller";
 import {
   extractOuterTweetIdentity,
@@ -110,6 +117,7 @@ class ContentApp {
       this.navController.restoreAll();
       this.sidebarController.restoreAll();
       removeAllQuoteListButtons();
+      removeAllRetweetListButtons();
       removeAllMediaDownloadButtons();
       return;
     }
@@ -120,6 +128,9 @@ class ContentApp {
 
     if (!nextSettings.showQuoteListButton) {
       removeAllQuoteListButtons();
+    }
+    if (!nextSettings.showRetweetListButton) {
+      removeAllRetweetListButtons();
     }
     if (!nextSettings.enableMediaDownload) {
       removeAllMediaDownloadButtons();
@@ -158,6 +169,11 @@ class ContentApp {
 
     if (action === QUOTE_BUTTON_ACTION && actionEl instanceof HTMLAnchorElement) {
       handleQuoteButtonClick(event, actionEl);
+      return;
+    }
+
+    if (action === RETWEET_BUTTON_ACTION && actionEl instanceof HTMLAnchorElement) {
+      handleRetweetButtonClick(event, actionEl);
       return;
     }
 
@@ -216,6 +232,7 @@ class ContentApp {
     if (!identity) {
       article.removeAttribute(TWEET_ID_MARK_ATTR);
       removeQuoteListButtonFromBar(actionBar);
+      removeRetweetListButtonFromBar(actionBar);
       removeMediaDownloadButtonFromBar(actionBar);
       return;
     }
@@ -230,7 +247,14 @@ class ContentApp {
       removeQuoteListButtonFromBar(actionBar);
     }
 
-    // 2. メディアダウンロードボタン（FR-040）
+    // 2. リポスト（リツイート）一覧ボタン
+    if (this.settings.showRetweetListButton) {
+      upsertRetweetListButton(actionBar, identity, cacheEntry?.retweetCount);
+    } else {
+      removeRetweetListButtonFromBar(actionBar);
+    }
+
+    // 3. メディアダウンロードボタン（FR-040）
     // キャッシュヒット時は API 解析結果（media.length > 0）を権威ある情報源とし、
     // キャッシュ未到着時のみ引用枠外の DOM メディア要素を補助判定に使う。
     if (this.settings.enableMediaDownload) {

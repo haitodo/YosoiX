@@ -71,6 +71,7 @@ export class MediaCache {
               ? incoming.screenName
               : existing.screenName,
           quoteCount: incoming.quoteCount ?? existing.quoteCount,
+          retweetCount: incoming.retweetCount ?? existing.retweetCount,
           // 新しいレスポンスにメディアが含まれていれば署名付きURLを優先更新
           media: incoming.media.length > 0 ? incoming.media : existing.media,
           capturedAt: currentTime,

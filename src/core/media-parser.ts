@@ -266,6 +266,10 @@ function extractSingleTweetEntry(
     typeof legacy.quote_count === "number" && Number.isFinite(legacy.quote_count) && legacy.quote_count >= 0
       ? Math.floor(legacy.quote_count)
       : undefined;
+  const retweetCount =
+    typeof legacy.retweet_count === "number" && Number.isFinite(legacy.retweet_count) && legacy.retweet_count >= 0
+      ? Math.floor(legacy.retweet_count)
+      : undefined;
 
   // extended_entities.media を優先し、存在しない場合のみ entities.media を補助参照する（spec.md 4.4）
   const extendedEntities = isPlainObject(legacy.extended_entities) ? legacy.extended_entities : null;
@@ -302,6 +306,7 @@ function extractSingleTweetEntry(
     tweetId: restId,
     screenName,
     quoteCount,
+    retweetCount,
     media,
     capturedAt: now,
   };
@@ -370,6 +375,7 @@ export function parseApiResponseForTweets(
                 ? extracted.screenName
                 : existing.screenName,
             quoteCount: extracted.quoteCount ?? existing.quoteCount,
+            retweetCount: extracted.retweetCount ?? existing.retweetCount,
             media: extracted.media.length > 0 ? extracted.media : existing.media,
             capturedAt: now,
           });

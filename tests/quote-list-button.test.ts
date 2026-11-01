@@ -27,11 +27,13 @@ describe("quote-list-button: DOM 操作と冪等性", () => {
     tweetId: "1000000001",
     screenName: "alice",
     quotesPath: "/alice/status/1000000001/quotes",
+    retweetsPath: "/alice/status/1000000001/retweets",
   };
   const identityB: TweetDomIdentity = {
     tweetId: "2000000002",
     screenName: "bob",
     quotesPath: "/bob/status/2000000002/quotes",
+    retweetsPath: "/bob/status/2000000002/retweets",
   };
 
   beforeEach(() => {
