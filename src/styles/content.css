@@ -16,6 +16,9 @@ html[data-yosoix-enabled="true"] [data-yosoix-nav-hidden] {
 }
 
 /* 固定パスを持つ項目は JS 走査前でも即座に非表示にしてチラつき（FOUC）を防ぐ */
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="premium"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  :is(a[href^="/i/premium_sign_up"], a[href^="/i/premium_tier_switch"], a[href="/i/premium"]),
 html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="explore"]
   :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
   a[href="/explore"],

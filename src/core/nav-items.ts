@@ -26,6 +26,14 @@ export interface NavItemDefinition {
 
 export const NAV_ITEM_DEFINITIONS: readonly NavItemDefinition[] = [
   {
+    id: "premium",
+    label: "Premium（プレミアム）",
+    description: "/i/premium_sign_up 等へのリンク",
+    exactPaths: ["/i/premium_sign_up", "/i/premium_tier_switch", "/i/premium"],
+    pathPrefixes: ["/i/premium_sign_up", "/i/premium_tier_switch"],
+    testIds: ["AppTabBar_Premium_Link"],
+  },
+  {
     id: "explore",
     label: "Explore（話題を検索）",
     description: "/explore へのナビゲーションリンク",

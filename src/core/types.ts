@@ -8,6 +8,7 @@
 
 /** 左ナビゲーション個別非表示の対象識別子（FR-010） */
 export type NavItemId =
+  | "premium"
   | "explore"
   | "follow"
   | "chat"

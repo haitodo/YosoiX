@@ -10,7 +10,12 @@ describe("nav-items: matchNavItemLink", () => {
     return a;
   }
 
-  it("定義された全13項目がそれぞれのURL/ホスト/testidで正しくマッチする", () => {
+  it("定義された全14項目がそれぞれのURL/ホスト/testidで正しくマッチする", () => {
+    // 0. premium
+    expect(matchNavItemLink(createAnchor("/i/premium_sign_up"))).toBe("premium");
+    expect(matchNavItemLink(createAnchor("/i/premium_tier_switch"))).toBe("premium");
+    expect(matchNavItemLink(createAnchor("/other", "AppTabBar_Premium_Link"))).toBe("premium");
+
     // 1. explore
     expect(matchNavItemLink(createAnchor("/explore"))).toBe("explore");
     expect(matchNavItemLink(createAnchor("/explore/tabs/for-you"))).toBe("explore");
@@ -81,6 +86,7 @@ describe("navigation-controller: NavigationController", () => {
       <header role="banner">
         <nav role="navigation">
           <a href="/home" data-testid="AppTabBar_Home_Link"><span>Home</span></a>
+          <a href="/i/premium_sign_up"><span>Premium</span></a>
           <a href="/explore"><span>Explore</span></a>
           <a href="/i/grok"><span>Grok</span></a>
           <a href="/i/lists"><span>Lists</span></a>
@@ -97,19 +103,22 @@ describe("navigation-controller: NavigationController", () => {
   });
 
   it("選択した項目のみに data-yosoix-nav-hidden が付与され、未選択や保護項目は付与されない", () => {
-    controller.updateConfig(true, ["explore", "jobs"]);
+    controller.updateConfig(true, ["premium", "explore", "jobs"]);
 
+    const premiumLink = document.querySelector('a[href="/i/premium_sign_up"]');
     const exploreLink = document.querySelector('a[href="/explore"]');
     const jobsLink = document.querySelector('a[href="/jobs"]');
     const homeLink = document.querySelector('a[href="/home"]');
     const grokLink = document.querySelector('a[href="/i/grok"]');
 
+    expect(premiumLink?.getAttribute("data-yosoix-nav-hidden")).toBe("premium");
     expect(exploreLink?.getAttribute("data-yosoix-nav-hidden")).toBe("explore");
     expect(jobsLink?.getAttribute("data-yosoix-nav-hidden")).toBe("jobs");
 
     expect(homeLink?.hasAttribute("data-yosoix-nav-hidden")).toBe(false);
     expect(grokLink?.hasAttribute("data-yosoix-nav-hidden")).toBe(false);
 
+    expect(document.documentElement.getAttribute("data-yosoix-hide-nav")).toContain("premium");
     expect(document.documentElement.getAttribute("data-yosoix-hide-nav")).toContain("explore");
     expect(document.documentElement.getAttribute("data-yosoix-hide-nav")).toContain("jobs");
   });

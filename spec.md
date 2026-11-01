@@ -88,6 +88,7 @@ X（旧Twitter）のデスクトップWeb画面に対して、次の機能だけ
 
 | 設定項目 | 対象の例・識別方法 |
 |---|---|
+| Premium／プレミアム | `/i/premium_sign_up`、`/i/premium` 等 |
 | Explore | `/explore` |
 | Follow／フォローする人を探す | `/i/connect_people`、`/i/follow_people` |
 | Chat | `/i/chat` |
