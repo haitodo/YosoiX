@@ -203,9 +203,15 @@ pnpm test
 # 本番ビルド（dist/ に出力）
 pnpm run build
 
+# 展開フォルダー + 配布用 ZIP アーカイブ作成（release/ に出力）
+pnpm run package
+
 # 開発ウォッチビルド
 pnpm run watch
 ```
+
+### インストール用展開データのワンクリック作成バッチ
+Windows エクスプローラー等から直下に配置された `build-installer.bat` を実行（ダブルクリック可）することで、依存関係のチェックから `dist/` の展開データ構築、配布用 ZIP（`release/yosoix-v0.1.0-unpacked.zip`）の生成までを一括で行うことができます。
 
 ### Microsoft Edge での動作確認手順
 1. `pnpm run build` を実行し、`dist/` ディレクトリを生成する。
