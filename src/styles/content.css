@@ -1,0 +1,196 @@
+/**
+ * YosoiX Content Script Styles (spec.md 2.3, 2.4, 2.5, 2.6, 3.2)
+ *
+ * 1. 左ナビゲーション個別非表示（FOUC防止用の静的セレクター + 動的 data 属性制御）
+ * 2. 右サイドバー非表示＆中央メインカラム拡張（モバイル幅やダイアログ・2ペイン画面を破壊しない保護付き）
+ * 3. アクションバー内の引用一覧ボタン・ダウンロードボタンの基本レイアウトと状態表現
+ *    （※細部のホバーアニメーション調整や見た目ブラッシュアップは別AI側で拡張可能）
+ */
+
+/* ==========================================================================
+   1. 左ナビゲーション・もっと見るメニュー項目の個別非表示 (FR-010)
+   ========================================================================== */
+
+html[data-yosoix-enabled="true"] [data-yosoix-nav-hidden] {
+  display: none !important;
+}
+
+/* 固定パスを持つ項目は JS 走査前でも即座に非表示にしてチラつき（FOUC）を防ぐ */
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="explore"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href="/explore"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="follow"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  :is(a[href="/i/connect_people"], a[href="/i/follow_people"]),
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="chat"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href="/i/chat"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="calls"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href="/i/calls"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="creator_studio"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href^="/creators/studio"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="grok"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href^="/i/grok"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="jobs"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href^="/jobs"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="business"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  :is(a[href^="/i/premium-business"], a[href^="/i/verified-orgs-signup"]),
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="ads"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  :is(a[href*="://ads.x.com"], a[href*="://ads.twitter.com"]),
+html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="spaces"]
+  :is(header[role="banner"] nav[role="navigation"], #layers [data-testid="Dropdown"], #layers [role="menu"])
+  a[href="/i/spaces/start"] {
+  display: none !important;
+}
+
+/* ==========================================================================
+   2. 右サイドバー全体の非表示と中央領域の拡張 (FR-020)
+   - ダイアログ内は対象外にする
+   - 右サイドバーが存在する画面のみ拡張し、DMや設定の2ペイン画面を壊さない
+   - 狭いビューポート（モバイル幅）では無理に幅を書き換えず横スクロールを防ぐ
+   ========================================================================== */
+
+html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+  main[role="main"]
+  [data-testid="sidebarColumn"]:not([role="dialog"] *),
+html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+  main[role="main"]
+  [data-yosoix-right-sidebar="true"] {
+  display: none !important;
+}
+
+@media (min-width: 988px) {
+  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+    main[role="main"]
+    [data-yosoix-layout-row="true"],
+  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+    main[role="main"]
+    div:has(> [data-testid="primaryColumn"]):has(> [data-testid="sidebarColumn"]) {
+    justify-content: stretch !important;
+  }
+
+  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+    main[role="main"]
+    [data-yosoix-main-column="true"],
+  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
+    main[role="main"]
+    div:has(> [data-testid="sidebarColumn"])
+    > [data-testid="primaryColumn"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    flex-grow: 1 !important;
+  }
+}
+
+/* ==========================================================================
+   3. アクションバー追加ボタン（引用一覧・メディア保存）(FR-030, FR-040)
+   ========================================================================== */
+
+.yosoix-action-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.yosoix-action-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: rgb(113, 118, 123);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.yosoix-action-btn:hover,
+.yosoix-action-btn:focus-visible {
+  background-color: rgba(29, 155, 240, 0.12);
+  color: rgb(29, 155, 240);
+  outline: none;
+}
+
+.yosoix-action-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.45);
+}
+
+.yosoix-action-btn:active {
+  background-color: rgba(29, 155, 240, 0.2);
+}
+
+.yosoix-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yosoix-icon {
+  width: 18.75px;
+  height: 18.75px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.yosoix-btn-label {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ダウンロード状態別カラー */
+.yosoix-download-btn[data-yosoix-dl-state="loading"] {
+  color: rgb(29, 155, 240);
+  cursor: wait;
+}
+
+.yosoix-download-btn[data-yosoix-dl-state="success"] {
+  color: rgb(0, 186, 124);
+}
+
+.yosoix-download-btn[data-yosoix-dl-state="success"]:hover,
+.yosoix-download-btn[data-yosoix-dl-state="success"]:focus-visible {
+  background-color: rgba(0, 186, 124, 0.12);
+  color: rgb(0, 186, 124);
+}
+
+.yosoix-download-btn[data-yosoix-dl-state="error"] {
+  color: rgb(244, 33, 46);
+}
+
+.yosoix-download-btn[data-yosoix-dl-state="error"]:hover,
+.yosoix-download-btn[data-yosoix-dl-state="error"]:focus-visible {
+  background-color: rgba(244, 33, 46, 0.12);
+  color: rgb(244, 33, 46);
+}
+
+@keyframes yosoix-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.yosoix-spin {
+  animation: yosoix-rotate 0.9s linear infinite;
+}

@@ -1,0 +1,22 @@
+{
+  "name": "yosoix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "X (Twitter) 統合カスタマイズ拡張機能 (Microsoft Edge Manifest V3)",
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.313",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  }
+}

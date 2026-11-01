@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YosoiX 設定</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <div class="options-container">
+      <header class="options-header">
+        <div class="title-area">
+          <div class="logo-mark">Y</div>
+          <div>
+            <h1>YosoiX 設定</h1>
+            <p class="subtitle">X (Twitter) 統合カスタマイズ拡張機能</p>
+          </div>
+        </div>
+        <div id="status-message" class="status-message" aria-live="polite"></div>
+      </header>
+
+      <main id="options-root">
+        <!-- options.ts により動的描画 -->
+      </main>
+
+      <footer class="options-footer">
+        <button type="button" id="reset-button" class="btn btn-secondary">
+          初期設定に戻す
+        </button>
+        <span class="version-label">YosoiX v0.1.0</span>
+      </footer>
+    </div>
+    <script src="./options.js"></script>
+  </body>
+</html>
