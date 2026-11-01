@@ -107,6 +107,7 @@ flowchart LR
 | `src/core/nav-items.ts` | **実装済** | 左ナビ13項目の定義テーブル＆リンク判定関数 |
 | `src/core/validators.ts` | **実装済** | ブリッジ・SW・設定の境界バリデーター |
 | `src/core/filename.ts` | **実装済** | `XMedia/{screen_name}_{tweet_id}_{連番}.{拡張子}` 生成 |
+| `src/core/user-profile.ts` | **実装済** | ユーザープロフィールの全投稿表示 (`/all`) 誘導 |
 | `src/core/media-parser.ts` | **実装済** | GraphQL 走査・引用分離・原寸画像・MP4選択 |
 | `src/core/media-cache.ts` | **実装済** | O(1) LRU + 30分TTL キャッシュ |
 | `src/core/download-manager.ts` | **実装済** | DL状態機械・混在投稿の部分失敗継続制御 |
@@ -117,7 +118,7 @@ flowchart LR
 | `src/styles/content.css` | **基本実装済** | レイアウト制御＋ボタン基本見た目（※微調整可） |
 | `src/options/index.html`, `src/options/options.css`, `src/options/options.ts` | **実装済** | 1ページ完結・ライト/ダーク両対応カードUI |
 | `public/icons/icon16.png`, `icon32.png`, `icon48.png`, `icon128.png` | **実装済** | オリジナル高精細アンチエイリアスPNG |
-| `tests/*.test.ts` | **実装済** | 全6テストファイル・54件の全網羅テストパス |
+| `tests/*.test.ts` | **実装済** | 全7テストファイル・62件の全網羅テストパス |
 
 ---
 

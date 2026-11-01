@@ -35,6 +35,8 @@ export interface ExtensionSettings {
   showQuoteListButton: boolean;
   /** 各ツイートにリツイート（リポスト）一覧ボタンを表示するか */
   showRetweetListButton: boolean;
+  /** ユーザープロフィール遷移時にリポストを含む全ツイート (/all) を初期表示するか */
+  redirectToUserProfileAll: boolean;
   /** 画像・動画ダウンロード機能を有効にするか */
   enableMediaDownload: boolean;
 }
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = Object.freeze({
   hideRightSidebar: false,
   showQuoteListButton: true,
   showRetweetListButton: true,
+  redirectToUserProfileAll: true,
   enableMediaDownload: true,
 });
 

@@ -311,6 +311,10 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
       typeof raw.showRetweetListButton === "boolean"
         ? raw.showRetweetListButton
         : DEFAULT_SETTINGS.showRetweetListButton,
+    redirectToUserProfileAll:
+      typeof raw.redirectToUserProfileAll === "boolean"
+        ? raw.redirectToUserProfileAll
+        : DEFAULT_SETTINGS.redirectToUserProfileAll,
     enableMediaDownload:
       typeof raw.enableMediaDownload === "boolean"
         ? raw.enableMediaDownload

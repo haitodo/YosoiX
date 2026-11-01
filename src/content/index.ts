@@ -32,12 +32,11 @@ import {
   upsertRetweetListButton,
 } from "./retweet-list-button";
 import { SidebarController } from "./sidebar-controller";
+import { extractOuterTweetIdentity, findOuterActionBar, hasOuterDomMedia, X_SELECTORS } from "./tweet-dom";
 import {
-  extractOuterTweetIdentity,
-  findOuterActionBar,
-  hasOuterDomMedia,
-  X_SELECTORS,
-} from "./tweet-dom";
+  extractUsernameFromProfilePath,
+  toUserProfileAllPath,
+} from "../core/user-profile";
 
 /**
  * Content Script エントリーポイント（ISOLATED world: spec.md 4.3）
@@ -70,7 +69,10 @@ class ContentApp {
     this.domObserver = new DomObserver({
       onTweetArticlesAdded: (articles) => this.reconcileArticles(articles),
       onNavigationMutated: () => this.navController.applyToDocument(),
-      onLayoutMutated: () => this.sidebarController.reconcileLayout(),
+      onLayoutMutated: () => {
+        this.sidebarController.reconcileLayout();
+        this.checkCurrentPathForProfileAllRedirect();
+      },
     });
   }
 
@@ -88,6 +90,10 @@ class ContentApp {
     // 3. イベント委譲（React 18 の #react-root リスナーより先に捕捉するため capture: true）
     document.addEventListener("click", this.handleDelegatedClick, { capture: true });
     document.addEventListener("keydown", this.handleDelegatedKeydown, { capture: true });
+    document.addEventListener("mouseover", this.handleDelegatedMouseOver, { passive: true });
+    window.addEventListener("popstate", () => this.checkCurrentPathForProfileAllRedirect(), {
+      passive: true,
+    });
 
     // 4. 初期設定ロードと購読
     this.settings = await loadSettings();
@@ -138,6 +144,7 @@ class ContentApp {
 
     this.domObserver.start();
     this.domObserver.reconcileVisibleDom();
+    this.checkCurrentPathForProfileAllRedirect();
   }
 
   private readonly handleWindowMessage = (event: MessageEvent<unknown>): void => {
@@ -186,8 +193,62 @@ class ContentApp {
       if (!tweetId) return;
       const screenName = actionEl.getAttribute("data-yosoix-screen-name") ?? undefined;
       void this.downloadManager.downloadTweetMedia(tweetId, screenName);
+      return;
+    }
+
+    // 2. ユーザープロフィールリンクのクリック時、リポストを含む全投稿 (/all) へ誘導
+    if (this.settings.redirectToUserProfileAll) {
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (anchor && !anchor.closest("[data-yosoix-slot]")) {
+        const rawHref = anchor.getAttribute("href") ?? "";
+        const allPath = toUserProfileAllPath(rawHref);
+        if (allPath) {
+          anchor.setAttribute("href", allPath);
+
+          const isPlainPrimaryClick =
+            event.button === 0 &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.shiftKey &&
+            !event.altKey;
+
+          if (isPlainPrimaryClick) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (window.location.pathname !== allPath) {
+              window.history.pushState(null, "", allPath);
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }
+          }
+        }
+      }
     }
   };
+
+  private readonly handleDelegatedMouseOver = (event: MouseEvent): void => {
+    if (!this.settings.enabled || !this.settings.redirectToUserProfileAll) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const anchor = target.closest<HTMLAnchorElement>("a[href]");
+    if (!anchor || anchor.closest("[data-yosoix-slot]")) return;
+
+    const rawHref = anchor.getAttribute("href") ?? "";
+    const allPath = toUserProfileAllPath(rawHref);
+    if (allPath && rawHref !== allPath) {
+      anchor.setAttribute("href", allPath);
+    }
+  };
+
+  private checkCurrentPathForProfileAllRedirect(): void {
+    if (!this.settings.enabled || !this.settings.redirectToUserProfileAll) return;
+    const username = extractUsernameFromProfilePath(window.location.pathname);
+    if (username) {
+      const allPath = `/${username}/all${window.location.search}${window.location.hash}`;
+      window.history.replaceState(null, "", allPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }
 
   private readonly handleDelegatedKeydown = (event: KeyboardEvent): void => {
     if (!this.settings.enabled) return;

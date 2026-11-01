@@ -202,7 +202,28 @@ function renderOptions(root: HTMLElement): void {
   });
   root.appendChild(retweetCard);
 
-  // 6. メディア: ダウンロードボタン
+  // 6. ユーザープロフィール: /all 誘導
+  const profileCard = document.createElement("div");
+  profileCard.className = "section-card";
+  profileCard.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">プロフィールの初期表示を「すべて (/all)」にする</h2>
+        <p class="section-desc">ユーザー名やアイコンをクリックしてプロフィールを開いた際、リポストを含む全投稿が表示される /all ページを初期表示します</p>
+      </div>
+      <label class="switch-label">
+        <input type="checkbox" id="setting-profile-all-btn" ${currentSettings.redirectToUserProfileAll ? "checked" : ""} />
+        <span class="switch-slider"></span>
+      </label>
+    </div>
+  `;
+  const profileAllInput = profileCard.querySelector<HTMLInputElement>("#setting-profile-all-btn")!;
+  profileAllInput.addEventListener("change", () => {
+    void handleSettingChange("redirectToUserProfileAll", profileAllInput.checked);
+  });
+  root.appendChild(profileCard);
+
+  // 7. メディア: ダウンロードボタン
   const mediaCard = document.createElement("div");
   mediaCard.className = "section-card";
   mediaCard.innerHTML = `
