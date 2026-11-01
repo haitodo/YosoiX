@@ -56,5 +56,6 @@
       "world": "ISOLATED"
     }
   ],
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAitS7djLOedNNRx//ovo7VD+dYfOt8Kcb5vufynBbbZ7eriZuxuhFkIIcF4W4ugllyg1SsYCR0O3NBIdsSebvhmfGTBVn1Ljoc3RnK91kYnXs2ct2ZUXACsBkd3PJSstnqXXVPzvZ+SBUoJAa5i69sCjC+ux/k9MB+CcCOn2WHISCI7qvTUx8Ohg6nPNUXkSPPeJuwZP7Ux3hrM+Y/iwm+OPpKtyvT1UMI9yvpRF6eAQ2eL9khg8V6VTiQ1rFGsSd3Oi+0cw3WjpZ7IJxNBrHmyfgCuqdfULPGi900LzU2fKYFrSTa22h3/uAaXjuiUyba/RQCtYVP1ucDSutXBrKkQIDAQAB"
 }

@@ -1,8 +1,9 @@
 import * as esbuild from "esbuild";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureExtensionKey } from "./key-utils.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -33,9 +34,21 @@ const entries = [
   },
 ];
 
-async function copyStaticAssets() {
+async function copyStaticAssets(publicKeyBase64) {
   await mkdir(distDir, { recursive: true });
-  await cp(path.join(rootDir, "manifest.json"), path.join(distDir, "manifest.json"));
+
+  // manifest.json を読み込み、"key" プロパティを確実に付与して dist/manifest.json に配置
+  const manifestRaw = await readFile(path.join(rootDir, "manifest.json"), "utf8");
+  const manifest = JSON.parse(manifestRaw);
+  if (publicKeyBase64) {
+    manifest.key = publicKeyBase64;
+  }
+  await writeFile(
+    path.join(distDir, "manifest.json"),
+    JSON.stringify(manifest, null, 2) + "\n",
+    "utf8"
+  );
+
   await cp(path.join(rootDir, "src/styles/content.css"), path.join(distDir, "content.css"));
   await cp(path.join(rootDir, "src/options/index.html"), path.join(distDir, "options.html"));
   await cp(path.join(rootDir, "src/options/options.css"), path.join(distDir, "options.css"));
@@ -47,8 +60,11 @@ async function copyStaticAssets() {
 }
 
 async function main() {
+  const keyInfo = await ensureExtensionKey(rootDir);
+  console.log(`[YosoiX] 拡張機能 ID (固定): ${keyInfo.extensionId}`);
+
   await rm(distDir, { recursive: true, force: true });
-  await copyStaticAssets();
+  await copyStaticAssets(keyInfo.publicKeyBase64);
 
   const sharedOptions = {
     bundle: true,

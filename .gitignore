@@ -1,11 +1,15 @@
 # -----------------------------------------------------------------------------
-# Dependencies
+# Dependencies & Package Managers
 # -----------------------------------------------------------------------------
 node_modules/
 .pnpm-store/
+# pnpm 必須プロジェクトのため、誤操作による他ツールのロックファイル混入を防止
+package-lock.json
+yarn.lock
+bun.lockb
 
 # -----------------------------------------------------------------------------
-# Production builds, packages & distribution archives
+# Production builds, packages & distribution archives (Large generated artifacts)
 # -----------------------------------------------------------------------------
 dist/
 release/
@@ -16,15 +20,30 @@ out/
 *.zip
 *.tar.gz
 *.tgz
+*.7z
+*.rar
 
 # -----------------------------------------------------------------------------
-# Extension runtime downloads (Media storage folder)
+# Extension runtime downloads & Media (Prevent accidental large file commits)
 # -----------------------------------------------------------------------------
-# 拡張機能のダウンロード機能で生成されるメディア保存フォルダー
+# 拡張機能のダウンロード機能で生成される保存先フォルダー
 XMedia/
+downloads/
+download/
+media/
+# 動画・音声ファイル（誤ってプロジェクト内にダウンロードされた場合のセーフガード）
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.m4a
+*.aac
 
 # -----------------------------------------------------------------------------
-# Extension secrets & signing keys (NEVER commit to public repositories)
+# Extension secrets, signing keys & certificates (NEVER commit to public repositories)
 # -----------------------------------------------------------------------------
 *.pem
 *.key
@@ -33,14 +52,36 @@ XMedia/
 *.pfx
 *.p12
 *.pkcs12
+*.der
+*.pub
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+keys/
+secrets/
+secret/
+credentials/
+credentials.json
+client_secret*.json
 
 # -----------------------------------------------------------------------------
-# Environment variables & local credentials
+# Environment variables, local configs & auth tokens
 # -----------------------------------------------------------------------------
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.local
+.npmrc
+
+# -----------------------------------------------------------------------------
+# Databases & dumps
+# -----------------------------------------------------------------------------
+*.dump
+*.sql
+*.sqlite
+*.sqlite3
+*.db
 
 # -----------------------------------------------------------------------------
 # Logs & profiling
@@ -55,7 +96,7 @@ pnpm-debug.log*
 *.heapsnapshot
 
 # -----------------------------------------------------------------------------
-# Test coverage & build caches
+# Test coverage, test results & build caches
 # -----------------------------------------------------------------------------
 *.tsbuildinfo
 .tsbuildinfo
@@ -64,6 +105,8 @@ coverage/
 .vitest/
 .vitest-cache/
 .eslintcache
+playwright-report/
+test-results/
 
 # -----------------------------------------------------------------------------
 # OS metadata & temporary files
@@ -77,9 +120,11 @@ ehthumbs.db
 $RECYCLE.BIN/
 *.tmp
 *~
+*.bak
+*.orig
 
 # -----------------------------------------------------------------------------
-# Editor / IDE configuration
+# Editor / IDE configuration & AI assistant caches
 # -----------------------------------------------------------------------------
 .idea/
 .vscode/*
@@ -91,3 +136,7 @@ $RECYCLE.BIN/
 *.njsproj
 *.sln
 *.sw?
+.cursor/
+.windsurf/
+.chat/
+.copilot/
