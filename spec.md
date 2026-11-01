@@ -256,7 +256,7 @@ X（旧Twitter）のデスクトップWeb画面に対して、次の機能だけ
 | 設定キー | 初期値 |
 |---|---|
 | `enabled` | `true` |
-| `hiddenNavItems` | `[]`（すべて表示） |
+| `hiddenNavItems` | ExploreとHistory以外すべて非表示（`premium`, `follow`, `chat`, `calls`, `creator_studio`, `grok`, `jobs`, `lists`, `communities`, `business`, `ads`, `spaces`） |
 | `hideRightSidebar` | `false` |
 | `showQuoteListButton` | `true` |
 | `enableMediaDownload` | `true` |

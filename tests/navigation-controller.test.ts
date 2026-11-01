@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { matchNavItemLink, NAV_ITEM_DEFINITIONS, PROTECTED_NAV_TEST_IDS } from "../src/core/nav-items";
+import { DEFAULT_HIDDEN_NAV_ITEMS, DEFAULT_SETTINGS } from "../src/core/types";
+import { normalizeSettings } from "../src/core/validators";
 import { NavigationController } from "../src/content/navigation-controller";
 
 describe("nav-items: matchNavItemLink", () => {
@@ -139,5 +141,33 @@ describe("navigation-controller: NavigationController", () => {
     controller.restoreAll();
     expect(document.querySelectorAll("[data-yosoix-nav-hidden]")).toHaveLength(0);
     expect(document.documentElement.hasAttribute("data-yosoix-hide-nav")).toBe(false);
+  });
+});
+
+describe("default nav item settings", () => {
+  it("デフォルト非表示設定には Explore と History 以外の全項目が含まれる", () => {
+    const hiddenSet = new Set(DEFAULT_HIDDEN_NAV_ITEMS);
+
+    expect(hiddenSet.has("explore")).toBe(false);
+    expect(hiddenSet.has("history")).toBe(false);
+
+    const expectedIncluded = NAV_ITEM_DEFINITIONS
+      .map((d) => d.id)
+      .filter((id) => id !== "explore" && id !== "history");
+
+    expect(DEFAULT_HIDDEN_NAV_ITEMS).toHaveLength(expectedIncluded.length);
+    for (const id of expectedIncluded) {
+      expect(hiddenSet.has(id)).toBe(true);
+    }
+
+    expect(DEFAULT_SETTINGS.hiddenNavItems).toEqual(DEFAULT_HIDDEN_NAV_ITEMS);
+  });
+
+  it("normalizeSettings は未定義時にデフォルトで Explore・History 以外非表示の設定を補完する", () => {
+    const normalizedDefault = normalizeSettings({});
+    expect(normalizedDefault.hiddenNavItems).toEqual(DEFAULT_HIDDEN_NAV_ITEMS);
+
+    const normalizedExplicitEmpty = normalizeSettings({ hiddenNavItems: [] });
+    expect(normalizedExplicitEmpty.hiddenNavItems).toEqual([]);
   });
 });

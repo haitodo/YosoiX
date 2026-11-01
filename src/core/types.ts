@@ -41,10 +41,26 @@ export interface ExtensionSettings {
   enableMediaDownload: boolean;
 }
 
+/** 初期設定で非表示にするナビゲーション項目（ExploreとHistory以外すべて） */
+export const DEFAULT_HIDDEN_NAV_ITEMS: readonly NavItemId[] = Object.freeze([
+  "premium",
+  "follow",
+  "chat",
+  "calls",
+  "creator_studio",
+  "grok",
+  "jobs",
+  "lists",
+  "communities",
+  "business",
+  "ads",
+  "spaces",
+]);
+
 /** 初期設定値（spec.md 2.7 準拠） */
 export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = Object.freeze({
   enabled: true,
-  hiddenNavItems: [],
+  hiddenNavItems: [...DEFAULT_HIDDEN_NAV_ITEMS],
   hideRightSidebar: false,
   showQuoteListButton: true,
   showRetweetListButton: true,

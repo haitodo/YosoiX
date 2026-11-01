@@ -282,8 +282,9 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
     };
   }
 
-  const hiddenNavItems: NavItemId[] = [];
+  let hiddenNavItems: NavItemId[];
   if (Array.isArray(raw.hiddenNavItems)) {
+    hiddenNavItems = [];
     const seen = new Set<NavItemId>();
     for (const item of raw.hiddenNavItems) {
       if (typeof item === "string" && ALL_NAV_ITEM_IDS.has(item as NavItemId)) {
@@ -294,6 +295,8 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
         }
       }
     }
+  } else {
+    hiddenNavItems = [...DEFAULT_SETTINGS.hiddenNavItems];
   }
 
   return {
