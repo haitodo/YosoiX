@@ -247,7 +247,7 @@ describe("media-parser: parseApiResponseForTweets", () => {
     expect(entries[0]?.screenName).toBe("wrapped_user");
   });
 
-  it("リポスト（retweeted_status_result）では元ツイートのIDとスクリーン名で抽出する", () => {
+  it("リポスト（retweeted_status_result）では元ツイートおよびラッパー投稿の双方にメディアを紐づけて抽出する", () => {
     const payload = {
       tweet: {
         rest_id: "8888888888", // リポストラッパー投稿のID
@@ -281,10 +281,66 @@ describe("media-parser: parseApiResponseForTweets", () => {
     };
 
     const entries = parseApiResponseForTweets(payload);
-    // ラッパー投稿(8888888888)自身は除外され、元ツイート(7777777777)のみが登録される
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.tweetId).toBe("7777777777");
-    expect(entries[0]?.screenName).toBe("original_author");
+    // 元ツイート(7777777777)とラッパー投稿(8888888888)の双方が登録され、双方でメディアが取得可能
+    expect(entries).toHaveLength(2);
+    const orig = entries.find((e) => e.tweetId === "7777777777");
+    const wrapper = entries.find((e) => e.tweetId === "8888888888");
+    expect(orig).toBeDefined();
+    expect(orig?.screenName).toBe("original_author");
+    expect(orig?.media).toHaveLength(1);
+    expect(wrapper).toBeDefined();
+    expect(wrapper?.media).toHaveLength(1);
+  });
+
+  it("引用リポスト（quoted_status_result）では親投稿のDL対象に引用先メディアを統合しつつ引用先単体も抽出する", () => {
+    const payload = {
+      tweet: {
+        rest_id: "1111111111", // 親ツイート（引用する側）
+        core: {
+          user_results: {
+            result: { core: { screen_name: "quoting_user" } },
+          },
+        },
+        quoted_status_result: {
+          result: {
+            __typename: "Tweet",
+            rest_id: "2222222222", // 引用された側の元ツイート
+            core: {
+              user_results: {
+                result: { core: { screen_name: "quoted_artist" } },
+              },
+            },
+            legacy: {
+              extended_entities: {
+                media: [
+                  { type: "photo", media_url_https: "https://pbs.twimg.com/media/QuotedArt.jpg" },
+                ],
+              },
+            },
+          },
+        },
+        legacy: {
+          full_text: "見てこれすごい！",
+        },
+      },
+    };
+
+    const entries = parseApiResponseForTweets(payload);
+    expect(entries).toHaveLength(2);
+
+    const parent = entries.find((e) => e.tweetId === "1111111111");
+    const quoted = entries.find((e) => e.tweetId === "2222222222");
+
+    expect(parent).toBeDefined();
+    expect(parent?.media).toHaveLength(1);
+    expect(parent?.media[0]?.originalUrl).toBe("https://pbs.twimg.com/media/QuotedArt.jpg");
+    // ファイル名用メタデータは引用元の作者名と投稿IDを維持
+    expect(parent?.media[0]?.screenName).toBe("quoted_artist");
+    expect(parent?.media[0]?.tweetId).toBe("2222222222");
+
+    expect(quoted).toBeDefined();
+    expect(quoted?.screenName).toBe("quoted_artist");
+    expect(quoted?.media).toHaveLength(1);
   });
 
   it("削除済み・非公開メディア（ext_media_availability 不許可）は除外する", () => {

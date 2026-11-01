@@ -9,11 +9,10 @@ import { isAllowedMediaUrl, isPlainObject, isValidTweetId } from "./validators";
  * 1. エンドポイント判定と JSON 構造走査を完全に分離する（本モジュールは純粋関数のみ）。
  * 2. TweetWithVisibilityResults ラッパーの透過展開に対応する。
  * 3. X の 2024-2026 スキーマ移行（core.user_results.result.core.screen_name）と旧 legacy の両方に対応する。
- * 4. 引用ツイート（quoted_status_result）のメディアを親ツイートのメディアに混入させない。
- *    （引用先ツイートは独立した自身の tweetId エントリとしてのみ抽出する）
- * 5. リポスト（retweeted_status_result）はラッパー側ではなく元ツイート側の rest_id / 作者名で抽出する。
- * 6. リンクカード（card）内のサムネイルは対象にしない（extended_entities / entities のみ参照）。
- * 7. 巨大レスポンスや循環参照でメインスレッドを止めないよう、反復スタック＋訪問上限を設ける。
+ * 4. 引用ツイート（quoted_status_result）およびリポスト（retweeted_status_result）のメディアを親投稿のDL対象に統合しつつ、
+ *    引用先・元ツイート単体としても独立した tweetId エントリとして抽出する。
+ * 5. リンクカード（card）内のサムネイルは対象にしない（extended_entities / entities のみ参照）。
+ * 6. 巨大レスポンスや循環参照でメインスレッドを止めないよう、反復スタック＋訪問上限を設ける。
  */
 
 const MAX_VISITED_OBJECTS = 35_000;
@@ -237,41 +236,33 @@ function parseRawMediaEntity(
 }
 
 /**
- * 単一の Tweet ノード（TweetWithVisibilityResults 展開後）自身のメタデータのみを抽出する。
- * 引用ツイート（quoted_status_result）のメディアはここには含めない。
+ * TweetWithVisibilityResults や { result: ... } を透過的にアンラップする。
  */
-function extractSingleTweetEntry(
-  tweetNode: Record<string, unknown>,
-  now: number,
-): TweetMediaCacheEntry | null {
-  const restId = tweetNode.rest_id;
-  if (!isValidTweetId(restId)) {
+function unwrapTweetNode(node: unknown): Record<string, unknown> | null {
+  if (!isPlainObject(node)) return null;
+  const typename = node.__typename;
+  if (typename === "TweetTombstone" || typename === "TweetUnavailable") {
     return null;
   }
-
-  const legacy = isPlainObject(tweetNode.legacy) ? tweetNode.legacy : null;
-  if (!legacy) {
-    return null;
+  if (typename === "TweetWithVisibilityResults" && isPlainObject(node.tweet)) {
+    return unwrapTweetNode(node.tweet);
   }
-
-  // 純粋なリポスト（RT）ラッパーの場合は自身のコピーエンティティを登録せず、
-  // 木構造走査で内側の retweeted_status_result.result（元ツイート）側を登録させる。
-  if (isPlainObject(legacy.retweeted_status_result) || isPlainObject(tweetNode.retweeted_status_result)) {
-    return null;
+  if (isPlainObject(node.result)) {
+    return unwrapTweetNode(node.result);
   }
+  return node;
+}
 
-  const screenName = extractScreenName(tweetNode);
+/**
+ * legacy オブジェクトからメディアアイテム一覧を抽出する。
+ */
+function extractRawMediaFromLegacy(
+  legacy: Record<string, unknown>,
+  tweetId: string,
+  screenName: string,
+  startIndex: number = 1,
+): TweetMediaItem[] {
   const createdAt = typeof legacy.created_at === "string" ? legacy.created_at : undefined;
-  const quoteCount =
-    typeof legacy.quote_count === "number" && Number.isFinite(legacy.quote_count) && legacy.quote_count >= 0
-      ? Math.floor(legacy.quote_count)
-      : undefined;
-  const retweetCount =
-    typeof legacy.retweet_count === "number" && Number.isFinite(legacy.retweet_count) && legacy.retweet_count >= 0
-      ? Math.floor(legacy.retweet_count)
-      : undefined;
-
-  // extended_entities.media を優先し、存在しない場合のみ entities.media を補助参照する（spec.md 4.4）
   const extendedEntities = isPlainObject(legacy.extended_entities) ? legacy.extended_entities : null;
   const fallbackEntities = isPlainObject(legacy.entities) ? legacy.entities : null;
 
@@ -282,27 +273,165 @@ function extractSingleTweetEntry(
       : [];
 
   const media: TweetMediaItem[] = [];
-  let nextIndex = 1;
+  let nextIndex = startIndex;
   for (const rawItem of rawMediaList) {
     if (!isPlainObject(rawItem)) continue;
 
-    // 別投稿から埋め込まれた共有メディア（source_status_id_str が別IDを指すケース）の除外ガード
-    if (
-      typeof rawItem.source_status_id_str === "string" &&
-      rawItem.source_status_id_str !== "" &&
-      rawItem.source_status_id_str !== restId
-    ) {
-      continue;
-    }
-
-    const parsed = parseRawMediaEntity(rawItem, restId, screenName, createdAt, nextIndex);
+    const parsed = parseRawMediaEntity(rawItem, tweetId, screenName, createdAt, nextIndex);
     if (parsed) {
       media.push(parsed);
       nextIndex += 1;
     }
   }
 
-  return {
+  return media;
+}
+
+/**
+ * 単一の Tweet ノード（TweetWithVisibilityResults 展開後）から
+ * 自身および内包するリポスト・引用ツイートのメタデータとメディアを抽出する。
+ */
+function extractTweetEntries(
+  candidateTweet: Record<string, unknown>,
+  now: number,
+): TweetMediaCacheEntry[] {
+  const restId = candidateTweet.rest_id;
+  if (!isValidTweetId(restId)) {
+    return [];
+  }
+
+  const legacy = isPlainObject(candidateTweet.legacy) ? candidateTweet.legacy : null;
+  if (!legacy) {
+    return [];
+  }
+
+  const results: TweetMediaCacheEntry[] = [];
+  const screenName = extractScreenName(candidateTweet);
+  const quoteCount =
+    typeof legacy.quote_count === "number" && Number.isFinite(legacy.quote_count) && legacy.quote_count >= 0
+      ? Math.floor(legacy.quote_count)
+      : undefined;
+  const retweetCount =
+    typeof legacy.retweet_count === "number" && Number.isFinite(legacy.retweet_count) && legacy.retweet_count >= 0
+      ? Math.floor(legacy.retweet_count)
+      : undefined;
+
+  // 1. 純粋なリポスト（Native Retweet）の判定
+  let rawRetweeted = candidateTweet.retweeted_status_result ?? legacy.retweeted_status_result;
+  let retweetedNode = unwrapTweetNode(rawRetweeted);
+  if (!retweetedNode || !isValidTweetId(retweetedNode.rest_id)) {
+    rawRetweeted = legacy.retweeted_status_result ?? candidateTweet.retweeted_status_result;
+    retweetedNode = unwrapTweetNode(rawRetweeted);
+  }
+
+  if (retweetedNode && isValidTweetId(retweetedNode.rest_id) && isPlainObject(retweetedNode.legacy)) {
+    const origId = retweetedNode.rest_id;
+    const origScreenName = extractScreenName(retweetedNode);
+    const origLegacy = retweetedNode.legacy as Record<string, unknown>;
+    const origQuoteCount =
+      typeof origLegacy.quote_count === "number" && Number.isFinite(origLegacy.quote_count) && origLegacy.quote_count >= 0
+        ? Math.floor(origLegacy.quote_count)
+        : quoteCount;
+    const origRetweetCount =
+      typeof origLegacy.retweet_count === "number" && Number.isFinite(origLegacy.retweet_count) && origLegacy.retweet_count >= 0
+        ? Math.floor(origLegacy.retweet_count)
+        : retweetCount;
+
+    // 元ツイート自身のメディア
+    let origMedia = extractRawMediaFromLegacy(origLegacy, origId, origScreenName, 1);
+
+    // 元ツイート自身がさらに引用ツイートを持っている場合もケア
+    const origQuotedNode = unwrapTweetNode(
+      retweetedNode.quoted_status_result ?? origLegacy.quoted_status_result
+    );
+    if (origQuotedNode && isValidTweetId(origQuotedNode.rest_id) && isPlainObject(origQuotedNode.legacy)) {
+      const qId = origQuotedNode.rest_id;
+      const qScreenName = extractScreenName(origQuotedNode);
+      const qMedia = extractRawMediaFromLegacy(
+        origQuotedNode.legacy as Record<string, unknown>,
+        qId,
+        qScreenName,
+        origMedia.length + 1,
+      );
+      if (qMedia.length > 0) {
+        origMedia = [...origMedia, ...qMedia];
+      }
+    }
+
+    // 元ツイートのエントリ（元ツイートID）
+    const origEntry: TweetMediaCacheEntry = {
+      tweetId: origId,
+      screenName: origScreenName,
+      quoteCount: origQuoteCount,
+      retweetCount: origRetweetCount,
+      media: origMedia,
+      capturedAt: now,
+    };
+    results.push(origEntry);
+
+    // リポストラッパー投稿のエントリ（DOM がラッパーIDを見ていても元ツイートIDを見ていてもどちらでもヒットするようにする）
+    const wrapperEntry: TweetMediaCacheEntry = {
+      tweetId: restId,
+      screenName: origScreenName,
+      quoteCount: origQuoteCount,
+      retweetCount: origRetweetCount,
+      media: origMedia,
+      capturedAt: now,
+    };
+    results.push(wrapperEntry);
+
+    return results;
+  }
+
+  // 2. 通常ツイートまたは引用ツイート（Quote Tweet）
+  let media = extractRawMediaFromLegacy(legacy, restId, screenName, 1);
+
+  // 引用ツイート（quoted_status_result）の確認
+  let rawQuoted = candidateTweet.quoted_status_result ?? legacy.quoted_status_result;
+  let quotedNode = unwrapTweetNode(rawQuoted);
+  if (!quotedNode || !isValidTweetId(quotedNode.rest_id)) {
+    rawQuoted = legacy.quoted_status_result ?? candidateTweet.quoted_status_result;
+    quotedNode = unwrapTweetNode(rawQuoted);
+  }
+
+  if (quotedNode && isValidTweetId(quotedNode.rest_id) && isPlainObject(quotedNode.legacy)) {
+    const quotedId = quotedNode.rest_id;
+    const quotedScreenName = extractScreenName(quotedNode);
+    const quotedLegacy = quotedNode.legacy as Record<string, unknown>;
+
+    // 引用先自身のメディア
+    const quotedMedia = extractRawMediaFromLegacy(quotedLegacy, quotedId, quotedScreenName, 1);
+
+    // 引用先自身のエントリも独立して登録
+    const quotedEntry: TweetMediaCacheEntry = {
+      tweetId: quotedId,
+      screenName: quotedScreenName,
+      quoteCount:
+        typeof quotedLegacy.quote_count === "number" && Number.isFinite(quotedLegacy.quote_count) && quotedLegacy.quote_count >= 0
+          ? Math.floor(quotedLegacy.quote_count)
+          : undefined,
+      retweetCount:
+        typeof quotedLegacy.retweet_count === "number" && Number.isFinite(quotedLegacy.retweet_count) && quotedLegacy.retweet_count >= 0
+          ? Math.floor(quotedLegacy.retweet_count)
+          : undefined,
+      media: quotedMedia,
+      capturedAt: now,
+    };
+    results.push(quotedEntry);
+
+    // 親ツイートのメディアリストにも引用先メディアを統合（リポスト/引用されたツイートのメディアもDL可能に）
+    if (quotedMedia.length > 0) {
+      const reindexedQuotedMedia = extractRawMediaFromLegacy(
+        quotedLegacy,
+        quotedId,
+        quotedScreenName,
+        media.length + 1,
+      );
+      media = [...media, ...reindexedQuotedMedia];
+    }
+  }
+
+  const selfEntry: TweetMediaCacheEntry = {
     tweetId: restId,
     screenName,
     quoteCount,
@@ -310,6 +439,9 @@ function extractSingleTweetEntry(
     media,
     capturedAt: now,
   };
+  results.push(selfEntry);
+
+  return results;
 }
 
 /**
@@ -361,8 +493,8 @@ export function parseApiResponseForTweets(
         : record;
 
     if (isValidTweetId(candidateTweet.rest_id) && isPlainObject(candidateTweet.legacy)) {
-      const extracted = extractSingleTweetEntry(candidateTweet, now);
-      if (extracted) {
+      const extractedList = extractTweetEntries(candidateTweet, now);
+      for (const extracted of extractedList) {
         const existing = entriesById.get(extracted.tweetId);
         if (!existing) {
           entriesById.set(extracted.tweetId, extracted);

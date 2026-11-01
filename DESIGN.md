@@ -66,11 +66,11 @@ flowchart LR
 [`src/core/media-parser.ts`](./src/core/media-parser.ts) にて以下の X 固有構造に対応済みです。
 1. **ポリモーフィックな Tweet ラッパー**: `TweetWithVisibilityResults`（制限付き表示ラッパー）の `.tweet` 透過展開、`TweetTombstone` / `TweetUnavailable` の除外。
 2. **`screen_name` の新旧スキーマ両対応**: X の 2024–2026 スキーマ変更により `legacy.screen_name` が空になり `core.user_results.result.core.screen_name` に移動したエンドポイントと、従来スキーマ・`UserWithVisibilityResults` のすべてに対応。
-3. **引用ツイート（Quote）の混入防止**:
-   - 各 Tweet ノードからは自身の `legacy.extended_entities.media`（補助: `legacy.entities.media`）と別投稿由来でない項目（`source_status_id_str` チェック）のみを抽出します。
-   - `quoted_status_result` は親の `tweetId` には一切混ぜず、引用先自身の `tweetId` を持つ独立エントリとしてキャッシュします。これにより「引用先にだけ画像がある投稿」では親の `media` が `[]` と確定し、誤表示・誤取得を防ぎます。
-4. **リポスト（Retweet）の元投稿解決**:
-   - `retweeted_status_result` を持つラッパー投稿は登録をスキップし、内側の元ツイート自身の `rest_id` と元作者の `screen_name` で登録します（DOM 上の `<time>` パーマリンクも元ツイート ID を指すため完全に一致します）。
+3. **引用ツイート（Quote）のメディア統合と独立キャッシュ**:
+   - 引用先ツイート（`quoted_status_result`）自身を独立エントリとしてキャッシュしつつ、親投稿のアクションバーからも引用先メディアを一括ダウンロードできるよう親の `media` リストにも統合します（アイテム自身の `tweetId` / `screenName` は引用元情報を保持するため、保存ファイル名は引用元作者名・IDとなります）。
+4. **リポスト（Retweet）の両ID対応**:
+   - `retweeted_status_result` を持つラッパー投稿と内側の元ツイート自身の両方の `tweetId` に対して元ツイートのメディアをキャッシュ登録します（DOM 上の `<time>` 判定がいずれの ID を参照していても確実にダウンロード可能とします）。
+   - 外部投稿共有動画（`source_status_id_str` を持つ共有メディア）もダウンロード対象として保持します。
 5. **リンクカード除外・利用不能メディア除外**:
    - リンクプレビュー（`tweet.card`）は参照しないため、OGP サムネイルを誤取得しません。
    - `ext_media_availability.status` 等が `"Available"` 以外の削除済み・DMCA メディアを除外します。

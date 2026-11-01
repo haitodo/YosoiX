@@ -23,7 +23,7 @@ export const X_SELECTORS = {
   standardTweetAction:
     '[data-testid="reply"], [data-testid="retweet"], [data-testid="unretweet"], [data-testid="like"], [data-testid="unlike"], [data-testid="bookmark"]',
   outerMediaCandidate:
-    '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]',
+    '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"], video',
   cardWrapper: '[data-testid="card.wrapper"]',
   quoteTweetContainer: '[data-testid="quoteTweet"]',
 } as const;
@@ -198,13 +198,21 @@ export function findOuterActionBar(article: HTMLElement): HTMLElement | null {
 }
 
 /**
- * API キャッシュ未到着時の補助判定として、親ツイート自身に画像・動画 DOM が存在するかを調べる。
- * 引用ツイート内のメディアやリンクカードのサムネイルは厳密に除外する（spec.md 2.6.1, 6.4）。
+ * 指定要素が、リンクカード（Webサイト記事プレビュー・OGP等）の内部にあるか判定する。
+ */
+export function isInsideLinkCard(element: Element, article: HTMLElement): boolean {
+  const cardAncestor = element.closest(X_SELECTORS.cardWrapper);
+  return Boolean(cardAncestor && article.contains(cardAncestor));
+}
+
+/**
+ * API キャッシュ未到着時の補助判定として、投稿自身またはリポスト・引用ツイートに画像・動画 DOM が存在するかを調べる。
+ * リンクカード（card.wrapper）のサムネイルは除外し、投稿メディアや引用ツイートのメディアを検出する。
  */
 export function hasOuterDomMedia(article: HTMLElement): boolean {
   const candidates = article.querySelectorAll(X_SELECTORS.outerMediaCandidate);
   for (const el of candidates) {
-    if (!isInsideEmbeddedQuoteOrCard(el, article)) {
+    if (!isInsideLinkCard(el, article)) {
       return true;
     }
   }

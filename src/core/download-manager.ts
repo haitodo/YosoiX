@@ -103,6 +103,7 @@ export function buildDownloadPlan(
 
   for (const item of mediaItems) {
     const screenName = item.screenName || fallbackScreenName || "x_user";
+    const targetTweetId = item.tweetId || tweetId;
 
     if (item.type === "image") {
       const resolved = item.originalUrl ? toOriginalImageUrl(item.originalUrl) : null;
@@ -120,7 +121,7 @@ export function buildDownloadPlan(
         url: resolved.url,
         filename: buildMediaFilename({
           screenName,
-          tweetId,
+          tweetId: targetTweetId,
           mediaIndex: item.mediaIndex,
           extension: resolved.extension,
         }),
@@ -147,7 +148,7 @@ export function buildDownloadPlan(
       url: selection.url,
       filename: buildMediaFilename({
         screenName,
-        tweetId,
+        tweetId: targetTweetId,
         mediaIndex: item.mediaIndex,
         extension: "mp4",
       }),

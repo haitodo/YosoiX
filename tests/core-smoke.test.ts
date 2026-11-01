@@ -22,7 +22,7 @@ import {
  * （※個別モジュールの網羅的ユニットテストは DESIGN.md の手順に従い別AIが追加実装する）
  */
 describe("Core architecture invariants", () => {
-  it("引用先だけに画像がある投稿では、外側投稿の media を空として分離抽出する", () => {
+  it("引用先だけに画像がある投稿でも親投稿のDL対象にメディアを統合しつつ引用先単体も抽出する", () => {
     const mockGraphQlResponse = {
       data: {
         home: {
@@ -96,7 +96,10 @@ describe("Core architecture invariants", () => {
     expect(outer).toBeDefined();
     expect(outer?.screenName).toBe("outer_author");
     expect(outer?.quoteCount).toBe(14);
-    expect(outer?.media).toHaveLength(0);
+    // リポスト・引用ツイートの画像もDL対象として統合される
+    expect(outer?.media).toHaveLength(1);
+    expect(outer?.media[0]?.originalUrl).toBe("https://pbs.twimg.com/media/SampleImg01.png");
+    expect(outer?.media[0]?.screenName).toBe("quoted_artist");
 
     const quoted = byId.get("1000000000000000001");
     expect(quoted).toBeDefined();
@@ -158,7 +161,7 @@ describe("Core architecture invariants", () => {
     expect(validated?.entries[0]?.media).toHaveLength(0);
   });
 
-  it("DOM 解析で引用ツイート枠内の <time> やメディアを親ツイートと誤認しない", () => {
+  it("DOM 解析で引用ツイート枠内の <time> を親投稿と誤認せず、リポスト/引用ツイートのメディアを検出する", () => {
     document.body.innerHTML = `
       <article data-testid="tweet">
         <div data-testid="User-Name">
@@ -189,7 +192,8 @@ describe("Core architecture invariants", () => {
       quotesPath: "/outer_user/status/999999999999999999/quotes",
       retweetsPath: "/outer_user/status/999999999999999999/retweets",
     });
-    expect(hasOuterDomMedia(article)).toBe(false);
+    // リポスト・引用ツイートの画像もDLボタン表示対象として検出される
+    expect(hasOuterDomMedia(article)).toBe(true);
     expect(findOuterActionBar(article)).not.toBeNull();
 
     // MediaCache の TTL/LRU と DownloadPlan の基本確認
