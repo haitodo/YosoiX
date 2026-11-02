@@ -30,7 +30,9 @@ export interface ExtensionSettings {
   enabled: boolean;
   /** 非表示にする左ナビゲーション項目IDの配列 */
   hiddenNavItems: NavItemId[];
-  /** 右サイドバー全体を非表示にして中央領域を拡張するか */
+  /** ホーム上部の投稿エリアを非表示にするか */
+  hideHomeComposer: boolean;
+  /** 中央領域のレイアウトを保ったまま右サイドバー全体を非表示にするか */
   hideRightSidebar: boolean;
   /** 各ツイートに引用リポスト一覧ボタンを表示するか */
   showQuoteListButton: boolean;
@@ -63,6 +65,7 @@ export const DEFAULT_HIDDEN_NAV_ITEMS: readonly NavItemId[] = Object.freeze([
 export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = Object.freeze({
   enabled: true,
   hiddenNavItems: [...DEFAULT_HIDDEN_NAV_ITEMS],
+  hideHomeComposer: true,
   hideRightSidebar: false,
   showQuoteListButton: true,
   showRetweetListButton: true,

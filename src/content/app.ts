@@ -9,6 +9,7 @@ import {
 import { ALLOWED_PAGE_ORIGINS, validateBridgeEnvelope } from "../core/validators";
 import { loadSettings, subscribeSettingsChanged } from "../storage/settings";
 import { DomObserver } from "./dom-observer";
+import { ComposerController } from "./composer-controller";
 import {
   DOWNLOAD_BUTTON_ACTION,
   removeAllMediaDownloadButtons,
@@ -62,6 +63,7 @@ export class ContentApp {
   private readonly downloadManager = new DownloadManager(this.mediaCache);
   private readonly navController = new NavigationController();
   private readonly sidebarController = new SidebarController();
+  private readonly composerController = new ComposerController();
   private readonly domObserver: DomObserver;
   private readonly articlesById = new Map<string, Set<HTMLElement>>();
   private readonly articleIds = new WeakMap<HTMLElement, string>();
@@ -81,6 +83,7 @@ export class ContentApp {
       onNavigationMutated: () => this.navController.applyToDocument(),
       onLayoutMutated: () => {
         this.sidebarController.reconcileLayout();
+        this.composerController.reconcileLayout();
       },
     });
   }
@@ -125,7 +128,7 @@ export class ContentApp {
       type: "BRIDGE_READY",
       captureEnabled: this.settings.enabled && this.needsTweets(),
       includeMedia: this.settings.enableMediaDownload,
-      trackNavigation: this.settings.enabled && (this.settings.redirectToUserProfileAll || this.settings.hideRightSidebar),
+      trackNavigation: this.settings.enabled && (this.settings.redirectToUserProfileAll || this.needsLayout()),
     };
     window.postMessage(readyEnvelope, origin);
   }
@@ -142,6 +145,7 @@ export class ContentApp {
       document.documentElement.removeAttribute(ROOT_ENABLED_ATTR);
       this.navController.updateConfig(false, []);
       this.sidebarController.updateConfig(false, false);
+      this.composerController.updateConfig(false, false);
       removeAllQuoteListButtons();
       removeAllRetweetListButtons();
       removeAllMediaDownloadButtons();
@@ -169,6 +173,10 @@ export class ContentApp {
     return this.settings.showQuoteListButton || this.settings.showRetweetListButton || this.settings.enableMediaDownload;
   }
 
+  private needsLayout(): boolean {
+    return this.settings.hideRightSidebar || this.settings.hideHomeComposer;
+  }
+
   private isActive(): boolean {
     return this.initialized && this.settings.enabled && !this.suspended && document.visibilityState !== "hidden";
   }
@@ -185,10 +193,11 @@ export class ContentApp {
     if (this.uiListeners) return;
     this.navController.updateConfig(true, this.settings.hiddenNavItems, false);
     this.sidebarController.updateConfig(true, this.settings.hideRightSidebar, false);
+    this.composerController.updateConfig(true, this.settings.hideHomeComposer, false);
     this.domObserver.start({
       tweets: this.needsTweets(),
       navigation: this.settings.hiddenNavItems.length > 0,
-      layout: this.settings.hideRightSidebar,
+      layout: this.needsLayout(),
     });
     this.uiListeners = new AbortController();
     const signal = this.uiListeners.signal;
@@ -199,7 +208,7 @@ export class ContentApp {
     if (this.settings.redirectToUserProfileAll) {
       document.addEventListener("mouseover", this.handleDelegatedMouseOver, { passive: true, signal });
     }
-    if (this.settings.redirectToUserProfileAll || this.settings.hideRightSidebar) {
+    if (this.settings.redirectToUserProfileAll || this.needsLayout()) {
       window.addEventListener("popstate", this.handleRouteChanged, { passive: true, signal });
     }
     this.checkCurrentPathForProfileAllRedirect();

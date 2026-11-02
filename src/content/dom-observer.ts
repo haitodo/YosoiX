@@ -119,13 +119,18 @@ export class DomObserver {
       missingMain ? X_SELECTORS.mainRoot : "",
       missingLayers ? X_SELECTORS.layersRoot : "",
     ].filter(Boolean).join(",");
-    const layoutSelector = `${X_SELECTORS.primaryColumn}, ${X_SELECTORS.sidebarColumn}`;
+    const layoutSelector = [X_SELECTORS.primaryColumn, X_SELECTORS.sidebarColumn,
+      X_SELECTORS.complementaryAside, X_SELECTORS.homeComposerEditor, X_SELECTORS.inlinePostButton].join(", ");
     for (const record of records) {
       const target = record.target instanceof Element ? record.target : record.target.parentElement;
       if (target?.closest(".yosoix-action-slot")) continue;
       const inMain = Boolean(this.main?.contains(record.target));
       const inLayers = Boolean(this.layers?.contains(record.target));
       const inTweetScope = inMain || inLayers;
+      // 起動途中に投稿欄の祖先へタイムラインが追加された場合も、非表示範囲を絞り直す。
+      if (this.options.layout && inMain && target?.closest("[data-yosoix-home-composer]")) {
+        this.pendingLayout = true;
+      }
       if (this.options.navigation && (this.header?.contains(record.target) ||
         (inLayers && target?.closest(X_SELECTORS.dropdownMenu)))) {
         this.pendingNav = true;

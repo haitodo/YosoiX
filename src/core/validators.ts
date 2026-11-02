@@ -302,6 +302,10 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
   return {
     enabled: typeof raw.enabled === "boolean" ? raw.enabled : DEFAULT_SETTINGS.enabled,
     hiddenNavItems,
+    hideHomeComposer:
+      typeof raw.hideHomeComposer === "boolean"
+        ? raw.hideHomeComposer
+        : DEFAULT_SETTINGS.hideHomeComposer,
     hideRightSidebar:
       typeof raw.hideRightSidebar === "boolean"
         ? raw.hideRightSidebar

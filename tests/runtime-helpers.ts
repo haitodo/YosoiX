@@ -32,3 +32,10 @@ export function tweetMarkup(id = "123") {
     <div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/test.jpg"></div>
     <div role="group"><button data-testid="reply"></button></div></article>`;
 }
+
+export function composerMarkup() {
+  return `<div id="composer"><div><a href="/alice" aria-label="プロフィール">Avatar</a><div>
+    <div><div contenteditable="true" role="textbox" data-testid="tweetTextarea_0"></div></div>
+    <div><button data-testid="tweetButtonInline">Post</button></div>
+  </div></div></div>`;
+}

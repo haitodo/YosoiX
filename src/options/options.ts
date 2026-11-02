@@ -60,7 +60,7 @@ function renderOptions(root: HTMLElement): void {
     <div class="section-header">
       <div>
         <h2 class="section-title">拡張機能を有効にする</h2>
-        <p class="section-desc">OFFにするとすべてのナビゲーション非表示、レイアウト拡張、追加ボタンが無効化されます</p>
+        <p class="section-desc">OFFにするとナビゲーション・投稿エリア・サイドバーの非表示と追加ボタンが無効化されます</p>
       </div>
       <label class="switch-label">
         <input type="checkbox" id="setting-enabled" ${currentSettings.enabled ? "checked" : ""} />
@@ -139,6 +139,27 @@ function renderOptions(root: HTMLElement): void {
 
   root.appendChild(navCard);
 
+  // ホーム上部の投稿エリアの非表示
+  const composerCard = document.createElement("div");
+  composerCard.className = "section-card";
+  composerCard.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">ホーム上部の投稿エリアを非表示にする</h2>
+        <p class="section-desc">ホームタイムライン上部の投稿入力欄を非表示にします（初期設定はON）。投稿ダイアログや返信欄はそのまま使えます</p>
+      </div>
+      <label class="switch-label">
+        <input type="checkbox" id="setting-hide-composer" aria-label="ホーム上部の投稿エリアを非表示にする" ${currentSettings.hideHomeComposer ? "checked" : ""} />
+        <span class="switch-slider"></span>
+      </label>
+    </div>
+  `;
+  const composerInput = composerCard.querySelector<HTMLInputElement>("#setting-hide-composer")!;
+  composerInput.addEventListener("change", () => {
+    void handleSettingChange("hideHomeComposer", composerInput.checked);
+  });
+  root.appendChild(composerCard);
+
   // 3. 右サイドバー全体の非表示
   const sidebarCard = document.createElement("div");
   sidebarCard.className = "section-card";
@@ -146,7 +167,7 @@ function renderOptions(root: HTMLElement): void {
     <div class="section-header">
       <div>
         <h2 class="section-title">右サイドバーを非表示にする</h2>
-        <p class="section-desc">トレンドやおすすめユーザーのサイドバー全体を非表示にし、中央のタイムライン幅を広げます</p>
+        <p class="section-desc">中央のタイムラインの幅・位置を保ったまま、トレンドやおすすめユーザーのサイドバー全体を非表示にします</p>
       </div>
       <label class="switch-label">
         <input type="checkbox" id="setting-hide-sidebar" ${currentSettings.hideRightSidebar ? "checked" : ""} />

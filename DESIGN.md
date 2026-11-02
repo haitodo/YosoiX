@@ -90,7 +90,9 @@ flowchart LR
   - `document` の **`capture: true` フェーズ** で `[data-yosoix-action]` の `click` / `keydown(Enter, Space)` を処理することで、親 `<article>` への伝播を完全に遮断しています。
   - 引用一覧ボタンは本物の `<a href="/{user}/status/{id}/quotes">` として挿入し、通常左クリック時は `history.pushState` + `popstate` で高速 SPA 遷移（戻るボタンでスクロール位置維持）、Ctrl/中クリック時はブラウザー標準の別タブ遷移がそのまま機能します。
 - **右サイドバー非表示と2ペイン画面保護（[`src/content/sidebar-controller.ts`](./src/content/sidebar-controller.ts) + [`src/styles/content.css`](./src/styles/content.css)）**:
-  - `main[role="main"]` 内に右サイドバー（`sidebarColumn` 等）が存在する画面でのみ `primaryColumn` の `max-width: 600px` 制約を解除し、DM（`/messages`）や設定（`/settings`）の2ペイン画面やモーダル内 `aside`、狭いモバイル幅画面を破壊しません。
+  - `main[role="main"]` 内の右サイドバー（`sidebarColumn` 等）を `visibility: hidden` で隠します。右カラムの占有幅を維持し、中央カラムの幅・位置や投稿内の余白を変えません。DM・設定画面やモーダル内 `aside` は対象外です。
+- **ホーム上部の投稿エリア非表示（[`src/content/composer-controller.ts`](./src/content/composer-controller.ts)）**:
+  - ホーム内の `tweetTextarea_0` と `tweetButtonInline` を含むコンテナに非表示用の属性を付与します。タブ・タイムライン・ダイアログを境界にし、投稿欄全体だけを隠します。設定初期値は `hideHomeComposer: true` です。
 
 ### 2.4 仮想スクロール再描画に耐えるダウンロード状態管理と SW 二重検証
 - X のタイムラインは上下スクロールで `<article>` DOM が破棄・再生成されます。[`src/core/download-manager.ts`](./src/core/download-manager.ts) が `tweetId` キーで状態（`idle | loading | success | error`）を保持するため、ダウンロード処理中にスクロールしてもスピナーや完了表示が消えず、連打による重複起動も確実に防止します。
@@ -145,7 +147,8 @@ flowchart LR
    - **一般**: マスタースイッチ「拡張機能を有効にする」（`enabled: boolean`）。OFF のときは他セクションを視覚的にディム表示（または無効状態であることが分かる表示）にする。
    - **左ナビゲーション**: 非表示にする項目の個別チェックボックス一覧（`hiddenNavItems: NavItemId[]`）。
      - **重要**: 項目名ハードコードを避け、`src/core/nav-items.ts` の `NAV_ITEM_DEFINITIONS`（`id`, `label`, `description`）をループ描画すること（チェック ON ＝ 非表示にする項目として `hiddenNavItems` に追加）。
-   - **右サイドバー**: スイッチ「右サイドバーを非表示にしてタイムラインを広げる」（`hideRightSidebar: boolean`）。
+   - **右サイドバー**: スイッチ「右サイドバーを非表示にする」（`hideRightSidebar: boolean`）。中央タイムラインの幅・位置を維持する。
+   - **ホーム投稿エリア**: スイッチ「ホーム上部の投稿エリアを非表示にする」（`hideHomeComposer: boolean`、初期値 `true`）。
    - **ツイート**: スイッチ「各ツイートに引用リポスト一覧ボタンを表示する」（`showQuoteListButton: boolean`）。
    - **メディア**: スイッチ「画像・動画の一括ダウンロードボタンを表示する」（`enableMediaDownload: boolean`）。
    - フッター付近に「初期設定に戻す」ボタン（`resetSettings()` 呼び出し）と保存状態の控えめなトースト／ステータスメッセージ（`aria-live="polite"`）を設ける。

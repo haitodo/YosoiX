@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ContentApp } from "../src/content/app";
 import { MediaCache } from "../src/core/media-cache";
 import { BRIDGE_NAMESPACE, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, type ExtensionSettings } from "../src/core/types";
-import { mockFrames, setVisibility, settle, tweetMarkup } from "./runtime-helpers";
+import { composerMarkup, mockFrames, setVisibility, settle, tweetMarkup } from "./runtime-helpers";
 
 describe("ContentApp の休止・復帰と機能別停止", () => {
   let app: ContentApp;
@@ -14,7 +14,7 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     setVisibility("visible");
     window.history.replaceState(null, "", "/home");
     document.body.innerHTML = `<div id="react-root"><header role="banner"><nav role="navigation"></nav><a data-testid="SideNav_NewTweet_Button" href="/compose/post">Post</a></header><main role="main">${tweetMarkup()}</main></div><div id="layers"></div>`;
-    settings = { ...DEFAULT_SETTINGS, hiddenNavItems: [], redirectToUserProfileAll: false };
+    settings = { ...DEFAULT_SETTINGS, hiddenNavItems: [], hideHomeComposer: false, redirectToUserProfileAll: false };
     clock = mockFrames();
     vi.stubGlobal("chrome", { storage: {
       local: { get: vi.fn(async () => ({ [SETTINGS_STORAGE_KEY]: settings })) },
@@ -93,6 +93,50 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     expect(button.getAttribute("data-yosoix-nav-hidden")).toBe("post");
     update({ hiddenNavItems: [] }); clock.flush();
     expect(button.hasAttribute("data-yosoix-nav-hidden")).toBe(false);
+  });
+
+  it("投稿エリアだけが有効でも設定変更・遅延描画・履歴変更・休止復帰を反映する", async () => {
+    settings = { ...settings, hideHomeComposer: true, showQuoteListButton: false,
+      showRetweetListButton: false, enableMediaDownload: false };
+    const main = document.querySelector("main")!;
+    main.innerHTML = '<div data-testid="primaryColumn"><div role="tablist">Home</div><div id="compose-slot"></div><section role="region"></section></div>';
+    await app.init(); clock.flush();
+    expect(window.postMessage).toHaveBeenCalledWith(expect.objectContaining({ captureEnabled: false, trackNavigation: true }), window.location.origin);
+    document.getElementById("compose-slot")!.innerHTML = composerMarkup();
+    await settle(); clock.flush();
+    expect(document.getElementById("compose-slot")?.getAttribute("data-yosoix-home-composer")).toBe("true");
+    update({ hideHomeComposer: false });
+    expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+    update({ hideHomeComposer: true }); clock.flush();
+    window.history.pushState(null, "", "/alice/status/123");
+    window.dispatchEvent(new PopStateEvent("popstate")); clock.flush();
+    expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+    window.history.pushState(null, "", "/home");
+    window.dispatchEvent(new MessageEvent("message", { source: window, origin: window.location.origin,
+      data: { [BRIDGE_NAMESPACE]: true, type: "ROUTE_CHANGED" } })); clock.flush();
+    expect(document.querySelector("[data-yosoix-home-composer]")).not.toBeNull();
+    setVisibility("hidden");
+    document.getElementById("compose-slot")!.innerHTML = composerMarkup();
+    await settle();
+    expect(clock.frames.size).toBe(0);
+    setVisibility("visible"); clock.flush();
+    expect(document.querySelector("[data-yosoix-home-composer]")).not.toBeNull();
+    update({ enabled: false });
+    expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+  });
+
+  it("描画途中の投稿欄の親にタイムラインが追加されても、投稿欄だけを隠す", async () => {
+    settings = { ...settings, hideHomeComposer: true, showQuoteListButton: false,
+      showRetweetListButton: false, enableMediaDownload: false };
+    document.querySelector("main")!.innerHTML = `<div data-testid="primaryColumn"><div id="wrapper">${composerMarkup()}</div></div>`;
+    await app.init(); clock.flush();
+    const wrapper = document.getElementById("wrapper")!;
+    expect(wrapper.hasAttribute("data-yosoix-home-composer")).toBe(true);
+    wrapper.insertAdjacentHTML("beforeend", '<section role="region">Timeline</section>');
+    await settle(); clock.flush();
+    expect(wrapper.hasAttribute("data-yosoix-home-composer")).toBe(false);
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+    expect(document.querySelector("section")?.closest("[data-yosoix-home-composer]")).toBeNull();
   });
 
   it("投稿機能が無効でも履歴変更通知によるプロフィールの/all誘導は働く", async () => {

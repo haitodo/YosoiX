@@ -2,7 +2,7 @@
  * YosoiX Content Script Styles (spec.md 2.3, 2.4, 2.5, 2.6, 3.2)
  *
  * 1. 左ナビゲーション個別非表示（FOUC防止用の静的セレクター + 動的 data 属性制御）
- * 2. 右サイドバー非表示＆中央メインカラム拡張（モバイル幅やダイアログ・2ペイン画面を破壊しない保護付き）
+ * 2. 右サイドバー非表示（中央メインカラムの幅・配置は維持）とホーム投稿エリア非表示
  * 3. アクションバー内の引用一覧ボタン・ダウンロードボタンの基本レイアウトと状態表現
  *    （※細部のホバーアニメーション調整や見た目ブラッシュアップは別AI側で拡張可能）
  */
@@ -55,42 +55,22 @@ html[data-yosoix-enabled="true"][data-yosoix-hide-nav~="spaces"]
 }
 
 /* ==========================================================================
-   2. 右サイドバー全体の非表示と中央領域の拡張 (FR-020)
+   2. 右サイドバー全体とホーム投稿エリアの非表示 (FR-020, FR-021)
    - ダイアログ内は対象外にする
-   - 右サイドバーが存在する画面のみ拡張し、DMや設定の2ペイン画面を壊さない
-   - 狭いビューポート（モバイル幅）では無理に幅を書き換えず横スクロールを防ぐ
+   - 右カラムの占有幅を保ち、中央カラムの幅・位置や投稿内の余白を変えない
    ========================================================================== */
 
 html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
   main[role="main"]
-  [data-testid="sidebarColumn"]:not([role="dialog"] *),
+  [data-testid="sidebarColumn"]:not([role="dialog"], [aria-modal="true"], #layers):not(:is([role="dialog"], [aria-modal="true"], #layers) *),
 html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
   main[role="main"]
   [data-yosoix-right-sidebar="true"] {
-  display: none !important;
+  visibility: hidden !important;
 }
 
-@media (min-width: 988px) {
-  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
-    main[role="main"]
-    [data-yosoix-layout-row="true"],
-  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
-    main[role="main"]
-    div:has(> [data-testid="primaryColumn"]):has(> [data-testid="sidebarColumn"]) {
-    justify-content: stretch !important;
-  }
-
-  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
-    main[role="main"]
-    [data-yosoix-main-column="true"],
-  html[data-yosoix-enabled="true"][data-yosoix-hide-right-sidebar="true"]
-    main[role="main"]
-    div:has(> [data-testid="sidebarColumn"])
-    > [data-testid="primaryColumn"] {
-    max-width: 100% !important;
-    width: 100% !important;
-    flex-grow: 1 !important;
-  }
+html[data-yosoix-enabled="true"] [data-yosoix-home-composer="true"] {
+  display: none !important;
 }
 
 /* ==========================================================================
