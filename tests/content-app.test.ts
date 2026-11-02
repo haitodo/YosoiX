@@ -62,14 +62,16 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     expect(clock.frames.size).toBe(0);
   });
 
-  it("全機能無効時はDOM監視とクリック等のリスナーを登録せず、APIも無効にする", async () => {
+  it("追加ボタンがすべて無効でも標準ボタンを並び替え、操作リスナーとAPI解析は停止する", async () => {
     settings = { ...settings, showQuoteListButton: false, showRetweetListButton: false, enableMediaDownload: false };
     const observe = vi.spyOn(MutationObserver.prototype, "observe");
     const listen = vi.spyOn(document, "addEventListener");
     await app.init();
-    expect(observe).not.toHaveBeenCalled();
+    expect(observe).toHaveBeenCalled();
     expect(listen.mock.calls.some(([event]) => ["click", "keydown", "mouseover"].includes(event))).toBe(false);
     expect(window.postMessage).toHaveBeenCalledWith(expect.objectContaining({ captureEnabled: false, trackNavigation: false }), window.location.origin);
+    clock.flush();
+    expect(document.querySelector('[data-testid="reply"]')?.getAttribute("data-yosoix-tweet-action")).toBe("reply");
     expect(clock.frames.size).toBe(0);
   });
 
@@ -93,6 +95,35 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     expect(button.getAttribute("data-yosoix-nav-hidden")).toBe("post");
     update({ hiddenNavItems: [] }); clock.flush();
     expect(button.hasAttribute("data-yosoix-nav-hidden")).toBe(false);
+  });
+
+  it("追加ボタンなしでもアナリティクス・共有の設定を即時反映し、新しい投稿にも適用する", async () => {
+    settings = { ...settings, showQuoteListButton: false, showRetweetListButton: false, enableMediaDownload: false };
+    const nativeActions = '<div><a href="/alice/status/123/analytics">Views</a></div><div><button aria-label="共有">Share</button></div>';
+    document.querySelector('[role="group"]')!.insertAdjacentHTML("beforeend", nativeActions);
+    await app.init(); clock.flush();
+    const cache = vi.spyOn(MediaCache.prototype, "upsertMany");
+    captured();
+    expect(cache).not.toHaveBeenCalled();
+    expect(document.querySelectorAll('[data-yosoix-tweet-action="analytics"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-yosoix-tweet-action="share"]')).toHaveLength(1);
+    expect(document.documentElement.getAttribute("data-yosoix-hide-tweet-analytics")).toBe("true");
+    expect(document.documentElement.getAttribute("data-yosoix-hide-tweet-share")).toBe("true");
+    update({ hideTweetAnalytics: false });
+    expect(document.documentElement.hasAttribute("data-yosoix-hide-tweet-analytics")).toBe(false);
+    expect(document.documentElement.hasAttribute("data-yosoix-hide-tweet-share")).toBe(true);
+    update({ hideTweetShare: false }); clock.flush();
+    expect(document.documentElement.hasAttribute("data-yosoix-hide-tweet-share")).toBe(false);
+    document.querySelector("main")!.innerHTML = tweetMarkup("456");
+    await settle(); clock.flush();
+    document.querySelector('[role="group"]')!.insertAdjacentHTML("beforeend", nativeActions);
+    await settle(); clock.flush();
+    expect(document.querySelectorAll('[data-yosoix-tweet-action="analytics"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-yosoix-tweet-action="share"]')).toHaveLength(1);
+    update({ enabled: false });
+    expect(document.documentElement.hasAttribute("data-yosoix-enabled")).toBe(false);
+    expect(document.documentElement.hasAttribute("data-yosoix-hide-tweet-analytics")).toBe(false);
+    expect(document.documentElement.hasAttribute("data-yosoix-hide-tweet-share")).toBe(false);
   });
 
   it("投稿エリアだけが有効でも設定変更・遅延描画・履歴変更・休止復帰を反映する", async () => {
@@ -141,7 +172,7 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
 
   it("投稿機能が無効でも履歴変更通知によるプロフィールの/all誘導は働く", async () => {
     settings = { ...settings, showQuoteListButton: false, showRetweetListButton: false, enableMediaDownload: false, redirectToUserProfileAll: true };
-    await app.init();
+    await app.init(); clock.flush();
     window.history.pushState(null, "", "/alice");
     window.dispatchEvent(new MessageEvent("message", { source: window, origin: window.location.origin,
       data: { [BRIDGE_NAMESPACE]: true, type: "ROUTE_CHANGED" } }));

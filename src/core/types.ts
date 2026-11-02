@@ -34,6 +34,10 @@ export interface ExtensionSettings {
   hideHomeComposer: boolean;
   /** 中央領域のレイアウトを保ったまま右サイドバー全体を非表示にするか */
   hideRightSidebar: boolean;
+  /** ツイート下部のアナリティクスを非表示にするか */
+  hideTweetAnalytics: boolean;
+  /** ツイート下部の共有を非表示にするか */
+  hideTweetShare: boolean;
   /** 各ツイートに引用リポスト一覧ボタンを表示するか */
   showQuoteListButton: boolean;
   /** 各ツイートにリツイート（リポスト）一覧ボタンを表示するか */
@@ -67,6 +71,8 @@ export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = Object.freeze({
   hiddenNavItems: [...DEFAULT_HIDDEN_NAV_ITEMS],
   hideHomeComposer: true,
   hideRightSidebar: false,
+  hideTweetAnalytics: true,
+  hideTweetShare: true,
   showQuoteListButton: true,
   showRetweetListButton: true,
   redirectToUserProfileAll: true,

@@ -310,6 +310,14 @@ export function normalizeSettings(raw: unknown): ExtensionSettings {
       typeof raw.hideRightSidebar === "boolean"
         ? raw.hideRightSidebar
         : DEFAULT_SETTINGS.hideRightSidebar,
+    hideTweetAnalytics:
+      typeof raw.hideTweetAnalytics === "boolean"
+        ? raw.hideTweetAnalytics
+        : DEFAULT_SETTINGS.hideTweetAnalytics,
+    hideTweetShare:
+      typeof raw.hideTweetShare === "boolean"
+        ? raw.hideTweetShare
+        : DEFAULT_SETTINGS.hideTweetShare,
     showQuoteListButton:
       typeof raw.showQuoteListButton === "boolean"
         ? raw.showQuoteListButton

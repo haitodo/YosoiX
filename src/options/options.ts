@@ -60,7 +60,7 @@ function renderOptions(root: HTMLElement): void {
     <div class="section-header">
       <div>
         <h2 class="section-title">拡張機能を有効にする</h2>
-        <p class="section-desc">OFFにするとナビゲーション・投稿エリア・サイドバーの非表示と追加ボタンが無効化されます</p>
+        <p class="section-desc">OFFにすると各エリアの非表示、ツイート下部の並び替え、追加ボタンが無効化されます</p>
       </div>
       <label class="switch-label">
         <input type="checkbox" id="setting-enabled" ${currentSettings.enabled ? "checked" : ""} />
@@ -180,6 +180,35 @@ function renderOptions(root: HTMLElement): void {
     void handleSettingChange("hideRightSidebar", sidebarInput.checked);
   });
   root.appendChild(sidebarCard);
+
+  const actionOrderCard = document.createElement("div");
+  actionOrderCard.className = "section-card";
+  actionOrderCard.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">ツイート下部のボタン</h2>
+        <p class="section-desc">返信 → リポスト → アナリティクス → 共有 → 引用一覧 → リポスト一覧 → ブックマーク → いいね の順に表示します</p>
+      </div>
+    </div>
+  `;
+  for (const [key, label] of [
+    ["hideTweetAnalytics", "アナリティクスを非表示にする"],
+    ["hideTweetShare", "共有を非表示にする"],
+  ] as const) {
+    const row = document.createElement("label");
+    row.className = "nav-item-row";
+    row.innerHTML = `
+      <input type="checkbox" id="setting-${key}" ${currentSettings[key] ? "checked" : ""} />
+      <div class="nav-item-info">
+        <span class="nav-item-label">${label}</span>
+        <span class="nav-item-desc">初期設定はON（非表示）</span>
+      </div>
+    `;
+    const checkbox = row.querySelector<HTMLInputElement>("input")!;
+    checkbox.addEventListener("change", () => { void handleSettingChange(key, checkbox.checked); });
+    actionOrderCard.appendChild(row);
+  }
+  root.appendChild(actionOrderCard);
 
   // 4. ツイート: 引用一覧ボタン
   const quoteCard = document.createElement("div");

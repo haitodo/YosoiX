@@ -33,7 +33,8 @@ import {
   upsertRetweetListButton,
 } from "./retweet-list-button";
 import { SidebarController } from "./sidebar-controller";
-import { extractOuterTweetIdentity, findOuterActionBar, hasOuterDomMedia } from "./tweet-dom";
+import { extractOuterTweetIdentity, findOuterActionBar, hasOuterDomMedia, isNestedTweetArticle } from "./tweet-dom";
+import { applyTweetActionSettings, syncTweetActionBar } from "./tweet-action-controller";
 import {
   extractUsernameFromProfilePath,
   toUserProfileAllPath,
@@ -138,6 +139,7 @@ export class ContentApp {
     const previous = this.settings;
     this.settings = nextSettings;
     this.initialized = true;
+    applyTweetActionSettings(nextSettings);
     this.notifyBridgeReady();
     this.stopActivity();
 
@@ -195,7 +197,8 @@ export class ContentApp {
     this.sidebarController.updateConfig(true, this.settings.hideRightSidebar, false);
     this.composerController.updateConfig(true, this.settings.hideHomeComposer, false);
     this.domObserver.start({
-      tweets: this.needsTweets(),
+      // 標準アクションの並び替えは、追加ボタンやAPI解析のON/OFFにかかわらず適用する。
+      tweets: true,
       navigation: this.settings.hiddenNavItems.length > 0,
       layout: this.needsLayout(),
     });
@@ -356,15 +359,18 @@ export class ContentApp {
   };
 
   private reconcileArticles(articles: ReadonlySet<HTMLElement>): void {
-    if (!this.isActive() || !this.needsTweets()) return;
+    if (!this.isActive()) return;
     for (const article of articles) {
       this.reconcileSingleArticle(article);
     }
   }
 
   private reconcileSingleArticle(article: HTMLElement): void {
+    if (isNestedTweetArticle(article)) return;
     const actionBar = findOuterActionBar(article);
     if (!actionBar) return;
+    syncTweetActionBar(actionBar);
+    if (!this.needsTweets()) return;
 
     const identity = extractOuterTweetIdentity(article);
     if (!identity) {

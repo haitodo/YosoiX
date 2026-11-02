@@ -23,11 +23,21 @@ export const X_SELECTORS = {
   userNameBlock: '[data-testid="User-Name"]',
   actionBarGroup: '[role="group"]',
   standardTweetAction:
-    '[data-testid="reply"], [data-testid="retweet"], [data-testid="unretweet"], [data-testid="like"], [data-testid="unlike"], [data-testid="bookmark"]',
+    '[data-testid="reply"], [data-testid="retweet"], [data-testid="unretweet"], [data-testid="like"], [data-testid="unlike"], [data-testid="bookmark"], [data-testid="removeBookmark"]',
   outerMediaCandidate:
     '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"], video',
   cardWrapper: '[data-testid="card.wrapper"]',
   quoteTweetContainer: '[data-testid="quoteTweet"]',
+} as const;
+
+/** ツイート下部の標準アクション。共有はtestidがないXの表示にも対応する。 */
+export const TWEET_ACTION_SELECTORS = {
+  reply: '[data-testid="reply"]',
+  repost: '[data-testid="retweet"], [data-testid="unretweet"]',
+  analytics: 'a[href*="/status/"][href*="/analytics"], [data-testid="analytics"]',
+  share: '[data-testid="share"], :is(button, [role="button"]):is([aria-label="Share" i], [aria-label="Share post" i], [aria-label="Share Tweet" i], [aria-label="共有"], [aria-label="ポストを共有"], [aria-label="ポストを共有する"], [aria-label="ツイートを共有"], [aria-label="ツイートを共有する"])',
+  bookmark: '[data-testid="bookmark"], [data-testid="removeBookmark"]',
+  like: '[data-testid="like"], [data-testid="unlike"]',
 } as const;
 
 const STATUS_PATH_REGEX = /^\/([A-Za-z0-9_]{1,20})\/status\/(\d{1,25})(?:\/|$|\?)/;
