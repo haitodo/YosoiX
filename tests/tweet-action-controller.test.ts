@@ -19,9 +19,9 @@ describe("ツイート下部のボタンの並び順と非表示", () => {
       <a id="analytics" href="/alice/status/123/analytics">Views</a>
       <div id="bookmark"><button data-testid="bookmark"></button></div>
       <div id="share"><button aria-label="ポストを共有"></button></div>
-      <div id="quotes" data-yosoix-slot="quotes"></div>
-      <div id="retweets" data-yosoix-slot="retweets"></div>
-      <div id="download" data-yosoix-slot="download"></div>
+      <div class="yosoix-action-slot" id="quotes" data-yosoix-slot="quotes"></div>
+      <div class="yosoix-action-slot" id="retweets" data-yosoix-slot="retweets"></div>
+      <div class="yosoix-action-slot" id="download" data-yosoix-slot="download"></div>
     </div></article>`;
     actionBar = document.getElementById("bar")!;
   });
@@ -73,6 +73,28 @@ describe("ツイート下部のボタンの並び順と非表示", () => {
     expect(getComputedStyle(document.getElementById("share")!).display).not.toBe("none");
     expect(getComputedStyle(document.getElementById("analytics")!).display).not.toBe("none");
     expect(getComputedStyle(document.getElementById("like")!).order).toBe("");
+  });
+
+  it("標準ボタンと追加ボタンを同じ伸縮幅・余白・中央揃えにし、非表示項目の枠を除く", () => {
+    const extensionCss = style.textContent;
+    style.textContent = '[role="group"] > div { flex: 0 0 auto; margin-left: 4px; width: 120px; }\n' + extensionCss;
+    try {
+      syncTweetActionBar(actionBar);
+      applyTweetActionSettings(DEFAULT_SETTINGS);
+      for (const id of ["reply", "repost", "quotes", "retweets", "bookmark", "like", "download"]) {
+        const css = getComputedStyle(document.getElementById(id)!);
+        expect(css.display).toBe("flex");
+        expect([css.flexGrow, css.flexShrink, css.flexBasis]).toEqual(["1", "1", "0px"]);
+        expect(css.minWidth).toBe("0");
+        expect(css.marginLeft).toBe("0px");
+        expect(css.justifyContent).toBe("center");
+        expect(css.width).toBe("auto");
+      }
+      expect(getComputedStyle(document.getElementById("analytics")!).display).toBe("none");
+      expect(getComputedStyle(document.getElementById("share")!).display).toBe("none");
+    } finally {
+      style.textContent = extensionCss;
+    }
   });
 
   it("共有とブックマークが同じグループ内にあっても個別に並べ替え・非表示にする", () => {

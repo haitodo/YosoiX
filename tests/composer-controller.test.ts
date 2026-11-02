@@ -1,18 +1,29 @@
 // @vitest-environment-options {"url":"https://x.com/home"}
-import { beforeEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ComposerController } from "../src/content/composer-controller";
 import { normalizeSettings } from "../src/core/validators";
 import { composerMarkup, tweetMarkup } from "./runtime-helpers";
 
 describe("ホーム上部の投稿エリア", () => {
   let controller: ComposerController;
+  let style: HTMLStyleElement;
   beforeEach(() => {
+    style = document.createElement("style");
+    style.textContent = readFileSync("src/styles/content.css", "utf8");
+    document.head.append(style);
+    document.documentElement.setAttribute("data-yosoix-enabled", "true");
     window.history.replaceState(null, "", "/home");
     document.body.innerHTML = `<main role="main"><div data-testid="primaryColumn"><div>
       <div role="tablist">For you / Following</div>${composerMarkup()}
       <section role="region">${tweetMarkup()}</section>
     </div></div></main><div id="layers"></div>`;
     controller = new ComposerController();
+  });
+  afterEach(() => {
+    controller.restoreAll();
+    style.remove();
+    document.documentElement.removeAttribute("data-yosoix-enabled");
   });
 
   it("既存設定で未指定・不正値なら初期値の非表示を補完し、明示的なOFFを維持する", () => {
@@ -57,6 +68,43 @@ describe("ホーム上部の投稿エリア", () => {
     expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
     document.querySelector('[data-testid="tweetButtonInline"]')!.remove();
     controller.reconcileLayout();
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+  });
+
+  it("cellInnerDiv・sectionで囲まれた投稿欄とtweetButtonにも対応する", () => {
+    document.querySelector('[data-testid="primaryColumn"]')!.innerHTML = `<div>
+      <nav role="tablist">ホーム</nav>
+      <section id="composer" role="region" data-testid="cellInnerDiv">
+        <div><a href="/alice">Avatar</a><div><div contenteditable="true" role="textbox">いまどうしてる？</div></div></div>
+        <div><button data-testid="tweetButton">ポストする</button></div>
+      </section>
+      <section id="timeline" role="region"><div data-testid="cellInnerDiv">${tweetMarkup()}</div></section>
+    </div>`;
+    controller.updateConfig(true, true);
+    expect(document.querySelectorAll("[data-yosoix-home-composer]")).toHaveLength(1);
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+    expect(document.getElementById("timeline")?.closest("[data-yosoix-home-composer]")).toBeNull();
+    expect(getComputedStyle(document.getElementById("composer")!).display).toBe("none");
+    expect(getComputedStyle(document.getElementById("timeline")!).display).not.toBe("none");
+    controller.updateConfig(true, false);
     expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+    expect(getComputedStyle(document.getElementById("composer")!).display).not.toBe("none");
+  });
+
+  it("入力欄の初期化前でも投稿ボタンから折り畳まれた投稿エリアを検出する", () => {
+    document.querySelector('[data-testid="primaryColumn"]')!.innerHTML = `<div role="tablist">Home</div>
+      <div data-testid="cellInnerDiv" id="composer"><div>いまどうしてる？</div><div><button data-testid="tweetButton">ポストする</button></div></div>
+      <section role="region">Timeline</section>`;
+    controller.updateConfig(true, true);
+    expect(document.querySelectorAll("[data-yosoix-home-composer]")).toHaveLength(1);
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+  });
+
+  it("primaryColumnがなくてもmain内の投稿欄を検出し、ダイアログの投稿欄を除外する", () => {
+    document.querySelector('[data-testid="primaryColumn"]')!.removeAttribute("data-testid");
+    document.querySelector("main")!.insertAdjacentHTML("beforeend", `<div role="dialog">${composerMarkup()}</div>`);
+    controller.updateConfig(true, true);
+    expect(document.querySelectorAll("[data-yosoix-home-composer]")).toHaveLength(1);
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
   });
 });

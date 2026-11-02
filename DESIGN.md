@@ -92,10 +92,11 @@ flowchart LR
 - **右サイドバー非表示と2ペイン画面保護（[`src/content/sidebar-controller.ts`](./src/content/sidebar-controller.ts) + [`src/styles/content.css`](./src/styles/content.css)）**:
   - `main[role="main"]` 内の右サイドバー（`sidebarColumn` 等）を `visibility: hidden` で隠します。右カラムの占有幅を維持し、中央カラムの幅・位置や投稿内の余白を変えません。DM・設定画面やモーダル内 `aside` は対象外です。
 - **ホーム上部の投稿エリア非表示（[`src/content/composer-controller.ts`](./src/content/composer-controller.ts)）**:
-  - ホーム内の `tweetTextarea_0` と `tweetButtonInline` を含むコンテナに非表示用の属性を付与します。タブ・タイムライン・ダイアログを境界にし、投稿欄全体だけを隠します。設定初期値は `hideHomeComposer: true` です。
+  - ホーム内の投稿入力欄、または投稿ボタン（`tweetButtonInline` / `tweetButton`）からコンテナを検出します。投稿欄を包む `cellInnerDiv`・`section` は許容し、別のタイムライン・タブ・ダイアログを境界にして投稿欄全体だけを隠します。入力欄の識別属性が後から付く描画にも差分監視で対応します。設定初期値は `hideHomeComposer: true` です。
 - **ツイート下部の表示順・非表示（[`src/content/tweet-action-controller.ts`](./src/content/tweet-action-controller.ts)）**:
   - 標準ボタンの枠を意味属性で識別し、CSSの `order` で「返信、リポスト、アナリティクス、共有、引用一覧、リポスト一覧、ブックマーク、いいね」に配置します。DOMは移動せず、複数アクションを含むラッパーは `display: contents` で表示上だけ展開します。
   - `hideTweetAnalytics`・`hideTweetShare` はともに初期値 `true`。設定はルート属性で即時反映します。追加ボタンがすべてOFFでも投稿DOMは差分監視し、API解析・クリック処理は必要な機能に限定します。
+  - 標準アクションと追加ボタンの枠を `flex: 1 1 0`・左右余白ゼロ・中央揃えに統一し、表示中のボタンに幅を均等配分します。長い追加ラベルは枠内で省略表示し、完全な説明はツールチップで確認できます。
 
 ### 2.4 仮想スクロール再描画に耐えるダウンロード状態管理と SW 二重検証
 - X のタイムラインは上下スクロールで `<article>` DOM が破棄・再生成されます。[`src/core/download-manager.ts`](./src/core/download-manager.ts) が `tweetId` キーで状態（`idle | loading | success | error`）を保持するため、ダウンロード処理中にスクロールしてもスピナーや完了表示が消えず、連打による重複起動も確実に防止します。

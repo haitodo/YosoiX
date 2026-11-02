@@ -92,14 +92,25 @@ export class DomObserver {
       ((this.options.navigation || this.options.tweets) && !this.layers);
     if (missing) {
       // 起動途中や特殊画面のみ。必要なルートが揃うと直ちに範囲を絞り直す。
-      this.observer.observe(document.documentElement, { childList: true, subtree: true });
+      this.observeRoot(document.documentElement);
     } else {
       for (const parent of ancestors) {
         if (!roots.has(parent)) this.observer.observe(parent, { childList: true });
       }
-      for (const root of roots) this.observer.observe(root, { childList: true, subtree: true });
+      for (const root of roots) this.observeRoot(root);
     }
     this.reconcileVisibleDom();
+  }
+
+  private observeRoot(root: Element): void {
+    this.observer?.observe(root, {
+      childList: true,
+      subtree: true,
+      ...(this.options.layout && (root === this.main || root === document.documentElement) ? {
+        attributes: true,
+        attributeFilter: ["data-testid", "role", "contenteditable"],
+      } : {}),
+    });
   }
 
   private collectArticles(node: Node, output: Set<HTMLElement>): void {
@@ -127,6 +138,12 @@ export class DomObserver {
       const inMain = Boolean(this.main?.contains(record.target));
       const inLayers = Boolean(this.layers?.contains(record.target));
       const inTweetScope = inMain || inLayers;
+      if (record.type === "attributes" && target) {
+        if (missingSelectors && target.matches(missingSelectors)) needsRebind = true;
+        if (this.options.layout && inMain &&
+          (target.matches(`${X_SELECTORS.homeComposerEditor}, ${X_SELECTORS.inlinePostButton}`) ||
+            target.closest("[data-yosoix-home-composer]"))) this.pendingLayout = true;
+      }
       // 起動途中に投稿欄の祖先へタイムラインが追加された場合も、非表示範囲を絞り直す。
       if (this.options.layout && inMain && target?.closest("[data-yosoix-home-composer]")) {
         this.pendingLayout = true;

@@ -170,6 +170,24 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     expect(document.querySelector("section")?.closest("[data-yosoix-home-composer]")).toBeNull();
   });
 
+  it("既存の要素が属性変更で投稿入力欄になった場合も、再読み込みなしで非表示にする", async () => {
+    settings = { ...settings, hideHomeComposer: true };
+    document.querySelector("main")!.innerHTML = `<div data-testid="primaryColumn"><div role="tablist">Home</div>
+      <div id="composer" data-testid="cellInnerDiv"><div><div id="editor">いまどうしてる？</div></div><button>ポストする</button></div>
+      <section role="region">Timeline</section></div>`;
+    await app.init(); clock.flush();
+    expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+    const editor = document.getElementById("editor")!;
+    editor.setAttribute("role", "textbox");
+    editor.setAttribute("contenteditable", "true");
+    await settle(); clock.flush();
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+    update({ hideHomeComposer: false });
+    expect(document.querySelector("[data-yosoix-home-composer]")).toBeNull();
+    update({ hideHomeComposer: true }); clock.flush();
+    expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
+  });
+
   it("投稿機能が無効でも履歴変更通知によるプロフィールの/all誘導は働く", async () => {
     settings = { ...settings, showQuoteListButton: false, showRetweetListButton: false, enableMediaDownload: false, redirectToUserProfileAll: true };
     await app.init(); clock.flush();

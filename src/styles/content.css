@@ -77,31 +77,6 @@ html[data-yosoix-enabled="true"] [data-yosoix-home-composer="true"] {
    3. アクションバー追加ボタン（引用一覧・メディア保存）(FR-030, FR-040)
    ========================================================================== */
 
-/* 返信 → リポスト → アナリティクス → 共有 → 引用一覧 → リポスト一覧 → ブックマーク → いいね */
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > *,
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-container="true"] > * {
-  order: 90 !important;
-}
-
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-container="true"] {
-  display: contents !important;
-}
-
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="reply"] { order: 1 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="repost"] { order: 2 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="analytics"] { order: 3 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="share"] { order: 4 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="quotes"] { order: 5 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="retweets"] { order: 6 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="bookmark"] { order: 7 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="like"] { order: 8 !important; }
-html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="download"] { order: 9 !important; }
-
-html[data-yosoix-enabled="true"][data-yosoix-hide-tweet-analytics="true"] [data-yosoix-tweet-action="analytics"],
-html[data-yosoix-enabled="true"][data-yosoix-hide-tweet-share="true"] [data-yosoix-tweet-action="share"] {
-  display: none !important;
-}
-
 .yosoix-action-slot {
   display: inline-flex;
   align-items: center;
@@ -164,6 +139,67 @@ html[data-yosoix-enabled="true"][data-yosoix-hide-tweet-share="true"] [data-yoso
 .yosoix-btn-label {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* 返信 → リポスト → アナリティクス → 共有 → 引用一覧 → リポスト一覧 → ブックマーク → いいね */
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+}
+
+/* X標準の可変幅の枠と追加ボタンの固有幅をそろえ、表示中のボタンで等分する。 */
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action],
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot] {
+  display: flex !important;
+  flex: 1 1 0 !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] .yosoix-action-btn {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-inline: 4px;
+}
+
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] .yosoix-btn-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > *,
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-container="true"] > * {
+  order: 90 !important;
+}
+
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-container="true"] {
+  display: contents !important;
+}
+
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="reply"] { order: 1 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="repost"] { order: 2 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="analytics"] { order: 3 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="share"] { order: 4 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="quotes"] { order: 5 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="retweets"] { order: 6 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="bookmark"] { order: 7 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action="like"] { order: 8 !important; }
+html[data-yosoix-enabled="true"] [data-yosoix-tweet-action-bar="true"] > [data-yosoix-slot="download"] { order: 9 !important; }
+
+html[data-yosoix-enabled="true"][data-yosoix-hide-tweet-analytics="true"] [data-yosoix-tweet-action="analytics"],
+html[data-yosoix-enabled="true"][data-yosoix-hide-tweet-share="true"] [data-yosoix-tweet-action="share"] {
+  display: none !important;
 }
 
 /* ダウンロード状態別カラー */
