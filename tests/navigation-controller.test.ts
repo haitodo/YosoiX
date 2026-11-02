@@ -159,16 +159,16 @@ describe("navigation-controller: NavigationController", () => {
 });
 
 describe("default nav item settings", () => {
-  it("Explore・History・投稿ボタンはデフォルト表示し、それ以外を非表示にする", () => {
+  it("Explore・Historyはデフォルト表示し、投稿ボタンを含むそれ以外を非表示にする", () => {
     const hiddenSet = new Set(DEFAULT_HIDDEN_NAV_ITEMS);
 
     expect(hiddenSet.has("explore")).toBe(false);
     expect(hiddenSet.has("history")).toBe(false);
-    expect(hiddenSet.has("post")).toBe(false);
+    expect(hiddenSet.has("post")).toBe(true);
 
     const expectedIncluded = NAV_ITEM_DEFINITIONS
       .map((d) => d.id)
-      .filter((id) => id !== "explore" && id !== "history" && id !== "post");
+      .filter((id) => id !== "explore" && id !== "history");
 
     expect(DEFAULT_HIDDEN_NAV_ITEMS).toHaveLength(expectedIncluded.length);
     for (const id of expectedIncluded) {

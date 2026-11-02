@@ -85,7 +85,7 @@ describe("ContentApp の休止・復帰と機能別停止", () => {
     expect(document.querySelector(".yosoix-action-slot")).not.toBeNull();
   });
 
-  it("投稿ボタンは初期表示を維持し、設定で非表示・復元できる", async () => {
+  it("投稿ボタンは設定に応じて非表示・復元できる", async () => {
     await app.init(); clock.flush();
     const button = document.querySelector('[data-testid="SideNav_NewTweet_Button"]')!;
     expect(button.hasAttribute("data-yosoix-nav-hidden")).toBe(false);

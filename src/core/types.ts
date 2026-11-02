@@ -42,8 +42,9 @@ export interface ExtensionSettings {
   enableMediaDownload: boolean;
 }
 
-/** 初期設定で非表示にする項目（Explore・History・投稿ボタン以外） */
+/** 初期設定で非表示にする項目（Explore・History以外） */
 export const DEFAULT_HIDDEN_NAV_ITEMS: readonly NavItemId[] = Object.freeze([
+  "post",
   "premium",
   "follow",
   "chat",
