@@ -92,7 +92,7 @@ flowchart LR
 - **右サイドバー非表示と2ペイン画面保護（[`src/content/sidebar-controller.ts`](./src/content/sidebar-controller.ts) + [`src/styles/content.css`](./src/styles/content.css)）**:
   - `main[role="main"]` 内の右サイドバー（`sidebarColumn` 等）を `visibility: hidden` で隠します。右カラムの占有幅を維持し、中央カラムの幅・位置や投稿内の余白を変えません。DM・設定画面やモーダル内 `aside` は対象外です。
 - **ホーム上部の投稿エリア非表示（[`src/content/composer-controller.ts`](./src/content/composer-controller.ts)）**:
-  - ホーム内の投稿入力欄、または投稿ボタン（`tweetButtonInline` / `tweetButton`）からコンテナを検出します。投稿欄を包む `cellInnerDiv`・`section` は許容し、別のタイムライン・タブ・ダイアログを境界にして投稿欄全体だけを隠します。入力欄の識別属性が後から付く描画にも差分監視で対応します。設定初期値は `hideHomeComposer: true` です。
+  - ホーム内の投稿入力欄（`data-testid` が `tweetTextarea` で始まる要素）、または投稿ボタン（`tweetButtonInline` / `tweetButton`）から検出します。[Control Panel for TwitterのTweetBox検出](https://github.com/insin/control-panel-for-twitter/blob/master/script.js#L3271)を参考に、`primaryColumn > div > div` の投稿欄を含む枝を優先して、外枠・区切り線・余白・見出しごと隠します。生成クラス名には依存しません。別のタイムライン・タブ・ダイアログは除外し、構造が異なる場合は祖先走査へフォールバックします。入力欄の識別属性が後から付く描画にも差分監視で対応します。設定初期値は `hideHomeComposer: true` です。
 - **ツイート下部の表示順・非表示（[`src/content/tweet-action-controller.ts`](./src/content/tweet-action-controller.ts)）**:
   - 標準ボタンの枠を意味属性で識別し、CSSの `order` で「返信、リポスト、アナリティクス、共有、引用一覧、リポスト一覧、ブックマーク、いいね」に配置します。DOMは移動せず、複数アクションを含むラッパーは `display: contents` で表示上だけ展開します。
   - `hideTweetAnalytics`・`hideTweetShare` はともに初期値 `true`。設定はルート属性で即時反映します。追加ボタンがすべてOFFでも投稿DOMは差分監視し、API解析・クリック処理は必要な機能に限定します。

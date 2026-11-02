@@ -16,7 +16,8 @@ export const X_SELECTORS = {
   sidebarColumn: '[data-testid="sidebarColumn"]',
   complementaryAside: 'aside[role="complementary"]',
   dialogContainer: '[role="dialog"], [aria-modal="true"]',
-  homeComposerEditor: '[data-testid="tweetTextarea_0"], [data-testid="tweetTextarea_0RichTextInputContainer"], [contenteditable="true"][role="textbox"], textarea[role="textbox"]',
+  homeComposerEditor: '[data-testid^="tweetTextarea"], [contenteditable="true"][role="textbox"], textarea[role="textbox"]',
+  homeComposerFrame: ':scope > div > div',
   inlinePostButton: '[data-testid="tweetButtonInline"], [data-testid="tweetButton"]',
 
   tweetArticle: 'article[data-testid="tweet"]',

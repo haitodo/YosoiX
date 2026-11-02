@@ -107,4 +107,28 @@ describe("ホーム上部の投稿エリア", () => {
     expect(document.querySelectorAll("[data-yosoix-home-composer]")).toHaveLength(1);
     expect(document.getElementById("composer")?.hasAttribute("data-yosoix-home-composer")).toBe(true);
   });
+
+  it("タイムライン直下の投稿エリアを、入力欄の外にある枠・見出し・余白ごと隠す", () => {
+    document.querySelector('[data-testid="primaryColumn"]')!.innerHTML = `<div>
+      <div role="tablist">ホーム</div>
+      <div id="composer-frame" class="css-g5y9jx r-kemksi r-184en5c" style="border:1px solid gray;padding:16px;min-height:180px">
+        <div role="heading">ポストする</div>
+        <div id="inner-composer"><div data-testid="tweetTextarea_7RichTextInputContainer">いまどうしてる？</div></div>
+        <div class="toolbar">投稿ツールバー</div>
+      </div>
+      <section role="region" id="timeline">${tweetMarkup()}</section>
+      <div id="unrelated" class="css-g5y9jx r-kemksi r-184en5c">同じクラスの別の要素</div>
+    </div>`;
+    controller.updateConfig(true, true);
+    const frame = document.getElementById("composer-frame")!;
+    expect(document.querySelectorAll("[data-yosoix-home-composer]")).toHaveLength(1);
+    expect(frame.getAttribute("data-yosoix-home-composer")).toBe("true");
+    expect(getComputedStyle(frame).display).toBe("none");
+    expect(document.getElementById("inner-composer")!.hasAttribute("data-yosoix-home-composer")).toBe(false);
+    expect(document.getElementById("timeline")!.closest("[data-yosoix-home-composer]")).toBeNull();
+    expect(getComputedStyle(document.getElementById("unrelated")!).display).not.toBe("none");
+    controller.updateConfig(true, false);
+    expect(getComputedStyle(frame).display).not.toBe("none");
+    expect(frame.style.padding).toBe("16px");
+  });
 });

@@ -146,7 +146,7 @@ function renderOptions(root: HTMLElement): void {
     <div class="section-header">
       <div>
         <h2 class="section-title">ホーム上部の投稿エリアを非表示にする</h2>
-        <p class="section-desc">ホームタイムライン上部の投稿入力欄を非表示にします（初期設定はON）。投稿ダイアログや返信欄はそのまま使えます</p>
+        <p class="section-desc">ホームタイムライン上部の投稿エリアを、外枠・アバター・ツールバーごと非表示にします（初期設定はON）。投稿ダイアログや返信欄はそのまま使えます</p>
       </div>
       <label class="switch-label">
         <input type="checkbox" id="setting-hide-composer" aria-label="ホーム上部の投稿エリアを非表示にする" ${currentSettings.hideHomeComposer ? "checked" : ""} />

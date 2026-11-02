@@ -2,12 +2,25 @@ import { X_SELECTORS } from "./tweet-dom";
 
 const COMPOSER_MARK = "data-yosoix-home-composer";
 // 投稿欄を包む要素だけを隠し、タブ・タイムライン・ダイアログまで巻き込まない。
-const CONTENT_BOUNDARY = [
-  "header", "nav", '[role="heading"]', '[role="tablist"]', X_SELECTORS.tweetArticle,
+const FRAME_BOUNDARY = [
+  "header", "nav", '[role="tablist"]', X_SELECTORS.tweetArticle,
   X_SELECTORS.dialogContainer, X_SELECTORS.layersRoot,
 ].join(", ");
+const CONTENT_BOUNDARY = `${FRAME_BOUNDARY}, [role="heading"]`;
 const CONTENT_CONTAINER = 'section, [role="region"], [data-testid="cellInnerDiv"]';
 const COMPOSER_SEED = `${X_SELECTORS.homeComposerEditor}, ${X_SELECTORS.inlinePostButton}`;
+const PAGE_CONTENT = `header, nav, [role="tablist"], section[role="region"], ${X_SELECTORS.tweetArticle}`;
+
+function isComposerFrame(element: HTMLElement): boolean {
+  if (element.matches(FRAME_BOUNDARY) || element.querySelector(FRAME_BOUNDARY)) return false;
+  // primaryColumn直下に投稿欄がある別構造では、その内部のdivを外枠と誤認しない。
+  const siblings = element.parentElement?.children ?? [];
+  if (![...siblings].some((sibling) => sibling !== element &&
+    (sibling.matches(PAGE_CONTENT) || sibling.querySelector(PAGE_CONTENT)))) return false;
+  // 枠内の見出し・メディア・余白は投稿エリアの一部。別のタイムライン領域は含めない。
+  return ![...element.querySelectorAll('[role="region"], [data-testid="primaryColumn"]')]
+    .some((region) => !region.querySelector(COMPOSER_SEED));
+}
 
 function containsOtherContent(element: Element, seed: Element): boolean {
   if (element.matches(CONTENT_BOUNDARY) || element.querySelector(CONTENT_BOUNDARY)) return true;
@@ -35,8 +48,17 @@ export class ComposerController {
       const main = document.querySelector<HTMLElement>(X_SELECTORS.mainRoot);
       const primary = main?.querySelector<HTMLElement>(X_SELECTORS.primaryColumn) ?? main;
       if (primary && !primary.closest(X_SELECTORS.dialogContainer)) {
+        // Control Panel for TwitterのTweetBox検出を参考に、primaryColumn > div > divの
+        // 投稿入力欄を含む枝を優先する。入力欄の祖先走査だけでは外枠や区切り線が残る。
+        const frames = primary.matches(X_SELECTORS.primaryColumn)
+          ? [...primary.querySelectorAll<HTMLElement>(X_SELECTORS.homeComposerFrame)] : [];
         for (const seed of primary.querySelectorAll<HTMLElement>(COMPOSER_SEED)) {
           if (seed.closest(`${X_SELECTORS.dialogContainer}, ${X_SELECTORS.layersRoot}, ${X_SELECTORS.tweetArticle}`)) continue;
+          const frame = frames.find((candidate) => candidate.contains(seed) && isComposerFrame(candidate));
+          if (frame) {
+            next.add(frame);
+            continue;
+          }
           let composer: HTMLElement | null = null;
           for (let cursor = seed.parentElement; cursor && cursor !== primary; cursor = cursor.parentElement) {
             if (containsOtherContent(cursor, seed)) break;
