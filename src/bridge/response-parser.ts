@@ -8,7 +8,7 @@ import type { TweetMediaCacheEntry } from "../core/types";
  * URL パターンで事前フィルタリングしてから最小メタデータへ変換する。
  */
 
-const MAX_RESPONSE_TEXT_CHARS = 15 * 1024 * 1024; // 15MB 上限ガード
+export const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 
 const ALLOWED_API_HOSTS: ReadonlySet<string> = new Set([
   "x.com",
@@ -91,21 +91,21 @@ export function isTargetApiUrl(rawUrl: string, baseOrigin: string = "https://x.c
  * テキストまたはパース済み JSON からキャッシュ用エントリを安全に抽出する。
  * 例外はすべて内部で握り潰し、ページ側の通信処理を一切妨害しない。
  */
-export function extractEntriesFromResponseText(rawText: string): TweetMediaCacheEntry[] {
-  if (!rawText || rawText.length > MAX_RESPONSE_TEXT_CHARS) {
+export function extractEntriesFromResponseText(rawText: string, includeMedia = true): TweetMediaCacheEntry[] {
+  if (!rawText || rawText.length > MAX_RESPONSE_BYTES) {
     return [];
   }
   try {
     const parsed: unknown = JSON.parse(rawText);
-    return parseApiResponseForTweets(parsed);
+    return parseApiResponseForTweets(parsed, Date.now(), includeMedia);
   } catch {
     return [];
   }
 }
 
-export function extractEntriesFromResponseJson(parsedJson: unknown): TweetMediaCacheEntry[] {
+export function extractEntriesFromResponseJson(parsedJson: unknown, includeMedia = true): TweetMediaCacheEntry[] {
   try {
-    return parseApiResponseForTweets(parsedJson);
+    return parseApiResponseForTweets(parsedJson, Date.now(), includeMedia);
   } catch {
     return [];
   }

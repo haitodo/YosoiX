@@ -20,6 +20,8 @@ export interface MediaCacheOptions {
 
 export class MediaCache {
   private readonly store = new Map<string, TweetMediaCacheEntry>();
+  // LRU の参照順序とTTLの登録時刻順序は別に管理する。
+  private readonly expirationOrder = new Map<string, number>();
   private readonly ttlMs: number;
   private readonly maxEntries: number;
   private readonly now: () => number;
@@ -47,6 +49,7 @@ export class MediaCache {
     const currentTime = this.now();
     if (currentTime - entry.capturedAt > this.ttlMs) {
       this.store.delete(tweetId);
+      this.expirationOrder.delete(tweetId);
       return undefined;
     }
 
@@ -61,7 +64,8 @@ export class MediaCache {
    */
   upsert(incoming: TweetMediaCacheEntry): void {
     const currentTime = this.now();
-    const existing = this.store.get(incoming.tweetId);
+    const previous = this.store.get(incoming.tweetId);
+    const existing = previous && currentTime - previous.capturedAt <= this.ttlMs ? previous : undefined;
 
     const merged: TweetMediaCacheEntry = existing
       ? {
@@ -85,6 +89,8 @@ export class MediaCache {
       this.store.delete(incoming.tweetId);
     }
     this.store.set(incoming.tweetId, merged);
+    this.expirationOrder.delete(incoming.tweetId);
+    this.expirationOrder.set(incoming.tweetId, currentTime);
 
     this.evictIfNeeded(currentTime);
   }
@@ -104,13 +110,15 @@ export class MediaCache {
 
   clear(): void {
     this.store.clear();
+    this.expirationOrder.clear();
   }
 
   private evictIfNeeded(currentTime: number): void {
     // 1. 先頭（古い順）から TTL 超過エントリを除去
-    for (const [key, entry] of this.store) {
-      if (currentTime - entry.capturedAt > this.ttlMs) {
+    for (const [key, capturedAt] of this.expirationOrder) {
+      if (currentTime - capturedAt > this.ttlMs) {
         this.store.delete(key);
+        this.expirationOrder.delete(key);
       } else {
         // capturedAt は単調増加で挿入されるため、最初の有効エントリに達したら打ち切り可能
         break;
@@ -122,6 +130,7 @@ export class MediaCache {
       const oldestKey = this.store.keys().next().value;
       if (oldestKey === undefined) break;
       this.store.delete(oldestKey);
+      this.expirationOrder.delete(oldestKey);
     }
   }
 }

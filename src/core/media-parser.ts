@@ -294,6 +294,7 @@ function extractRawMediaFromLegacy(
 function extractTweetEntries(
   candidateTweet: Record<string, unknown>,
   now: number,
+  includeMedia: boolean,
 ): TweetMediaCacheEntry[] {
   const restId = candidateTweet.rest_id;
   if (!isValidTweetId(restId)) {
@@ -338,13 +339,13 @@ function extractTweetEntries(
         : retweetCount;
 
     // 元ツイート自身のメディア
-    let origMedia = extractRawMediaFromLegacy(origLegacy, origId, origScreenName, 1);
+    let origMedia = includeMedia ? extractRawMediaFromLegacy(origLegacy, origId, origScreenName, 1) : [];
 
     // 元ツイート自身がさらに引用ツイートを持っている場合もケア
     const origQuotedNode = unwrapTweetNode(
       retweetedNode.quoted_status_result ?? origLegacy.quoted_status_result
     );
-    if (origQuotedNode && isValidTweetId(origQuotedNode.rest_id) && isPlainObject(origQuotedNode.legacy)) {
+    if (includeMedia && origQuotedNode && isValidTweetId(origQuotedNode.rest_id) && isPlainObject(origQuotedNode.legacy)) {
       const qId = origQuotedNode.rest_id;
       const qScreenName = extractScreenName(origQuotedNode);
       const qMedia = extractRawMediaFromLegacy(
@@ -384,7 +385,7 @@ function extractTweetEntries(
   }
 
   // 2. 通常ツイートまたは引用ツイート（Quote Tweet）
-  let media = extractRawMediaFromLegacy(legacy, restId, screenName, 1);
+  let media = includeMedia ? extractRawMediaFromLegacy(legacy, restId, screenName, 1) : [];
 
   // 引用ツイート（quoted_status_result）の確認
   let rawQuoted = candidateTweet.quoted_status_result ?? legacy.quoted_status_result;
@@ -400,7 +401,7 @@ function extractTweetEntries(
     const quotedLegacy = quotedNode.legacy as Record<string, unknown>;
 
     // 引用先自身のメディア
-    const quotedMedia = extractRawMediaFromLegacy(quotedLegacy, quotedId, quotedScreenName, 1);
+    const quotedMedia = includeMedia ? extractRawMediaFromLegacy(quotedLegacy, quotedId, quotedScreenName, 1) : [];
 
     // 引用先自身のエントリも独立して登録
     const quotedEntry: TweetMediaCacheEntry = {
@@ -450,6 +451,7 @@ function extractTweetEntries(
 export function parseApiResponseForTweets(
   rootPayload: unknown,
   now: number = Date.now(),
+  includeMedia = true,
 ): TweetMediaCacheEntry[] {
   if (!isPlainObject(rootPayload) && !Array.isArray(rootPayload)) {
     return [];
@@ -493,7 +495,7 @@ export function parseApiResponseForTweets(
         : record;
 
     if (isValidTweetId(candidateTweet.rest_id) && isPlainObject(candidateTweet.legacy)) {
-      const extractedList = extractTweetEntries(candidateTweet, now);
+      const extractedList = extractTweetEntries(candidateTweet, now, includeMedia);
       for (const extracted of extractedList) {
         const existing = entriesById.get(extracted.tweetId);
         if (!existing) {
@@ -519,6 +521,7 @@ export function parseApiResponseForTweets(
     const values = Object.values(record);
     for (let i = values.length - 1; i >= 0; i -= 1) {
       const val = values[i];
+      if (!includeMedia && (val === record.entities || val === record.extended_entities || val === record.card)) continue;
       if (typeof val === "object" && val !== null) {
         stack.push(val);
       }

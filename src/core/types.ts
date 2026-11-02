@@ -8,6 +8,7 @@
 
 /** 左ナビゲーション個別非表示の対象識別子（FR-010） */
 export type NavItemId =
+  | "post"
   | "premium"
   | "explore"
   | "follow"
@@ -41,7 +42,7 @@ export interface ExtensionSettings {
   enableMediaDownload: boolean;
 }
 
-/** 初期設定で非表示にするナビゲーション項目（ExploreとHistory以外すべて） */
+/** 初期設定で非表示にする項目（Explore・History・投稿ボタン以外） */
 export const DEFAULT_HIDDEN_NAV_ITEMS: readonly NavItemId[] = Object.freeze([
   "premium",
   "follow",
@@ -117,6 +118,9 @@ export interface BridgeMediaCapturedEnvelope {
 export interface BridgeReadyEnvelope {
   readonly [BRIDGE_NAMESPACE]: true;
   readonly type: "BRIDGE_READY";
+  readonly captureEnabled: boolean;
+  readonly includeMedia: boolean;
+  readonly trackNavigation: boolean;
 }
 
 /** Background Service Worker へ渡す個別ファイルダウンロード指示 */

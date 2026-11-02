@@ -72,6 +72,7 @@ async function main() {
     target: ["es2022", "edge120"],
     platform: "browser",
     sourcemap: isWatch ? "inline" : false,
+    minify: !isWatch,
     charset: "utf8",
     logLevel: "info",
   };

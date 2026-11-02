@@ -15,10 +15,14 @@ const RIGHT_SIDEBAR_MARK = "data-yosoix-right-sidebar";
 const MAIN_COLUMN_MARK = "data-yosoix-main-column";
 const LAYOUT_ROW_MARK = "data-yosoix-layout-row";
 
+function mark(element: Element, attribute: string): void {
+  if (element.getAttribute(attribute) !== "true") element.setAttribute(attribute, "true");
+}
+
 export class SidebarController {
   private active = false;
 
-  updateConfig(enabled: boolean, hideRightSidebar: boolean): void {
+  updateConfig(enabled: boolean, hideRightSidebar: boolean, reconcile = true): void {
     const shouldHide = enabled && hideRightSidebar;
     this.active = shouldHide;
 
@@ -27,8 +31,8 @@ export class SidebarController {
       return;
     }
 
-    document.documentElement.setAttribute(ROOT_SIDEBAR_ATTR, "true");
-    this.reconcileLayout();
+    mark(document.documentElement, ROOT_SIDEBAR_ATTR);
+    if (reconcile) this.reconcileLayout();
   }
 
   /**
@@ -55,13 +59,13 @@ export class SidebarController {
       return;
     }
 
-    rightSidebar.setAttribute(RIGHT_SIDEBAR_MARK, "true");
+    mark(rightSidebar, RIGHT_SIDEBAR_MARK);
 
     if (primaryColumn && !primaryColumn.closest(X_SELECTORS.dialogContainer)) {
-      primaryColumn.setAttribute(MAIN_COLUMN_MARK, "true");
+      mark(primaryColumn, MAIN_COLUMN_MARK);
       const layoutRow = this.findSharedRowContainer(primaryColumn, rightSidebar, main);
       if (layoutRow) {
-        layoutRow.setAttribute(LAYOUT_ROW_MARK, "true");
+        mark(layoutRow, LAYOUT_ROW_MARK);
       }
     }
   }

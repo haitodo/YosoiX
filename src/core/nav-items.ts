@@ -26,6 +26,13 @@ export interface NavItemDefinition {
 
 export const NAV_ITEM_DEFINITIONS: readonly NavItemDefinition[] = [
   {
+    id: "post",
+    label: "ポストする（投稿ボタン）",
+    description: "左サイドバーの投稿ボタンを非表示にする",
+    exactPaths: ["/compose/post", "/compose/tweet"],
+    testIds: ["SideNav_NewTweet_Button"],
+  },
+  {
     id: "premium",
     label: "Premium（プレミアム）",
     description: "/i/premium_sign_up 等へのリンク",
@@ -143,7 +150,6 @@ export const PROTECTED_NAV_TEST_IDS: ReadonlySet<string> = new Set([
   "AppTabBar_DirectMessage_Link",
   "AppTabBar_Profile_Link",
   "AppTabBar_More_Menu",
-  "SideNav_NewTweet_Button",
   "SideNav_AccountSwitcher_Button",
 ]);
 
@@ -158,7 +164,7 @@ function normalizePathname(pathname: string): string {
  * リンク要素（<a>）がどの NavItemId に該当するかを意味属性（href / data-testid）から判定する。
  * 難読化クラス名（r-xxxxx）や DOM 位置（nth-child）には一切依存しない。
  */
-export function matchNavItemLink(anchor: HTMLAnchorElement): NavItemId | null {
+export function matchNavItemLink(anchor: Element): NavItemId | null {
   const testId = anchor.getAttribute("data-testid");
   if (testId && PROTECTED_NAV_TEST_IDS.has(testId)) {
     return null;

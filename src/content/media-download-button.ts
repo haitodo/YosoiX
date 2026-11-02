@@ -48,8 +48,10 @@ function applyStatusToButton(
     }
   }
 
-  button.disabled = status.state === "loading";
-  button.setAttribute("aria-busy", status.state === "loading" ? "true" : "false");
+  const busy = status.state === "loading";
+  if (button.disabled !== busy) button.disabled = busy;
+  const ariaBusy = busy ? "true" : "false";
+  if (button.getAttribute("aria-busy") !== ariaBusy) button.setAttribute("aria-busy", ariaBusy);
 
   const tooltip = status.message ?? defaultStateTitle(status.state, mediaCount);
   if (button.getAttribute("title") !== tooltip) {
@@ -91,9 +93,13 @@ export function upsertMediaDownloadButton(
     actionBar.appendChild(wrapper);
   }
 
-  button.setAttribute("data-yosoix-tweet-id", identity.tweetId);
+  if (button.getAttribute("data-yosoix-tweet-id") !== identity.tweetId) {
+    button.setAttribute("data-yosoix-tweet-id", identity.tweetId);
+  }
   if (identity.screenName) {
-    button.setAttribute("data-yosoix-screen-name", identity.screenName);
+    if (button.getAttribute("data-yosoix-screen-name") !== identity.screenName) {
+      button.setAttribute("data-yosoix-screen-name", identity.screenName);
+    }
   } else {
     button.removeAttribute("data-yosoix-screen-name");
   }

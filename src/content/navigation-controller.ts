@@ -7,12 +7,14 @@ import { X_SELECTORS } from "./tweet-dom";
  *
  * - 常設の左ナビゲーション（header nav）と動的に開く「もっと見る」メニュー（#layers 内 Dropdown / menu）の
  *   双方に同じ設定を適用する。
- * - ナビゲーション全体（nav）、投稿ボタン、アカウント切替UI等を誤って消さない保護ガードを備える。
+ * - ナビゲーション全体（nav）やアカウント切替UI等を誤って消さない保護ガードを備える。
  * - マスターOFFまたは項目OFF時は即座に data-yosoix-nav-hidden 属性を除去して元の表示へ戻す。
  */
 
 const HIDDEN_ATTR = "data-yosoix-nav-hidden";
 const ROOT_HIDE_NAV_ATTR = "data-yosoix-hide-nav";
+const PROTECTED_CHILD_SELECTOR = [...PROTECTED_NAV_TEST_IDS, "SideNav_NewTweet_Button"]
+  .map((testId) => `[data-testid="${testId}"]`).join(",");
 
 /**
  * リンク要素または単一項目ラッパーのうち、安全に非表示にできる対象要素を返す。
@@ -29,9 +31,7 @@ function resolveSafeNavHideTarget(anchor: HTMLAnchorElement, container: Element)
     parent.getAttribute("data-testid") !== "Dropdown"
   ) {
     const linksInParent = parent.querySelectorAll("a[href]");
-    const hasProtectedChild = Array.from(PROTECTED_NAV_TEST_IDS).some((testId) =>
-      Boolean(parent.querySelector(`[data-testid="${testId}"]`)),
-    );
+    const hasProtectedChild = Boolean(parent.querySelector(PROTECTED_CHILD_SELECTOR));
     if (linksInParent.length === 1 && !hasProtectedChild) {
       return parent;
     }
@@ -46,7 +46,7 @@ export class NavigationController {
   /**
    * 設定を更新し、現在の DOM に即時反映する。
    */
-  updateConfig(enabled: boolean, hiddenNavItems: readonly NavItemId[]): void {
+  updateConfig(enabled: boolean, hiddenNavItems: readonly NavItemId[], reconcile = true): void {
     this.enabled = enabled;
     this.hiddenSet = new Set(hiddenNavItems);
     this.syncRootAttribute();
@@ -56,7 +56,7 @@ export class NavigationController {
       return;
     }
 
-    this.applyToDocument();
+    if (reconcile) this.applyToDocument();
   }
 
   /**
@@ -88,6 +88,18 @@ export class NavigationController {
     for (const container of containers) {
       this.applyToContainer(container);
     }
+
+    // 投稿ボタンは nav の外に配置されることもある。投稿フォームには触れない。
+    const postButtons = root.querySelectorAll<HTMLElement>(
+      'header[role="banner"] :is([data-testid="SideNav_NewTweet_Button"], a[href="/compose/post"], a[href="/compose/tweet"])',
+    );
+    for (const button of postButtons) {
+      if (this.hiddenSet.has("post")) {
+        if (button.getAttribute(HIDDEN_ATTR) !== "post") button.setAttribute(HIDDEN_ATTR, "post");
+      } else {
+        button.removeAttribute(HIDDEN_ATTR);
+      }
+    }
   }
 
   /**
@@ -106,22 +118,22 @@ export class NavigationController {
       document.documentElement.removeAttribute(ROOT_HIDE_NAV_ATTR);
       return;
     }
-    document.documentElement.setAttribute(
-      ROOT_HIDE_NAV_ATTR,
-      Array.from(this.hiddenSet).join(" "),
-    );
+    const value = Array.from(this.hiddenSet).join(" ");
+    if (document.documentElement.getAttribute(ROOT_HIDE_NAV_ATTR) !== value) {
+      document.documentElement.setAttribute(ROOT_HIDE_NAV_ATTR, value);
+    }
   }
 
   private applyToContainer(container: Element): void {
     const anchors = container.querySelectorAll<HTMLAnchorElement>("a[href], a[data-testid]");
     for (const anchor of anchors) {
       const matchedId = matchNavItemLink(anchor);
-      const target = resolveSafeNavHideTarget(anchor, container);
-
       if (matchedId && this.hiddenSet.has(matchedId)) {
-        target.setAttribute(HIDDEN_ATTR, matchedId);
-      } else if (target.hasAttribute(HIDDEN_ATTR)) {
-        target.removeAttribute(HIDDEN_ATTR);
+        const target = matchedId === "post" ? anchor : resolveSafeNavHideTarget(anchor, container);
+        if (target.getAttribute(HIDDEN_ATTR) !== matchedId) target.setAttribute(HIDDEN_ATTR, matchedId);
+      } else {
+        if (anchor.hasAttribute(HIDDEN_ATTR)) anchor.removeAttribute(HIDDEN_ATTR);
+        if (anchor.parentElement?.hasAttribute(HIDDEN_ATTR)) anchor.parentElement.removeAttribute(HIDDEN_ATTR);
       }
     }
   }

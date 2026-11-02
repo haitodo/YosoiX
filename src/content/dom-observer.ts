@@ -1,268 +1,187 @@
 import { X_SELECTORS } from "./tweet-dom";
 
-/**
- * 差分駆動型 DOM 監視オーケストレーター（spec.md 4.3.1, 5.1, 5.2, 6.5）
- *
- * パフォーマンス設計:
- * - setInterval / ポーリングを一切行わない。
- * - 全 DOM の繰り返し走査を行わず、MutationObserver で追加された要素（addedNodes）のみを
- *   requestAnimationFrame 単位でバッチ処理する。
- * - 監視対象は #react-root のルート構造変化と、実際に対象 UI が存在する
- *   header[role="banner"] / main[role="main"] / #layers に限定する。
- * - SPA 画面遷移で main や header が再生成された場合も自動で監視対象を張り直す。
- */
+export interface DomObserverOptions {
+  tweets: boolean;
+  navigation: boolean;
+  layout: boolean;
+}
 
 export interface DomObserverCallbacks {
-  /** 新規追加・遅延マウントされた個別ツイート <article> 群を処理する */
   onTweetArticlesAdded: (articles: ReadonlySet<HTMLElement>) => void;
-  /** 左ナビゲーションまたは「もっと見る」メニューの変化時に呼ばれる */
+  onTweetArticlesRemoved?: (articles: ReadonlySet<HTMLElement>) => void;
   onNavigationMutated: () => void;
-  /** main レイアウトや SPA ルート遷移時に右サイドバー制御を再調整する */
   onLayoutMutated: () => void;
 }
 
+/** 必要な UI だけを差分監視する。ルート置換は祖先の直下監視で検出する。 */
 export class DomObserver {
-  private readonly callbacks: DomObserverCallbacks;
-  private rootLifecycleObserver: MutationObserver | null = null;
-  private scopedObserver: MutationObserver | null = null;
-  private observedHeader: Element | null = null;
-  private observedMain: Element | null = null;
-  private observedLayers: Element | null = null;
-
+  private observer: MutationObserver | null = null;
+  private header: Element | null = null;
+  private main: Element | null = null;
+  private layers: Element | null = null;
   private readonly pendingArticles = new Set<HTMLElement>();
-  private pendingNavSync = false;
-  private pendingLayoutSync = false;
+  private pendingNav = false;
+  private pendingLayout = false;
   private rafId: number | null = null;
-  private lastPathname = "";
-  private running = false;
+  private options: DomObserverOptions = { tweets: true, navigation: true, layout: true };
 
-  private readonly handlePopState = (): void => {
-    this.checkUrlTransition();
-  };
+  constructor(private readonly callbacks: DomObserverCallbacks) {}
 
-  constructor(callbacks: DomObserverCallbacks) {
-    this.callbacks = callbacks;
-  }
-
-  start(): void {
-    if (this.running) return;
-    this.running = true;
-    this.lastPathname = window.location.pathname;
-
-    this.scopedObserver = new MutationObserver((mutations) => {
-      this.handleScopedMutations(mutations);
-    });
-
-    // #react-root 直下の構造置換（初期マウント・SPA ルート再構築）を監視
-    const reactRoot = document.querySelector(X_SELECTORS.reactRoot) ?? document.body;
-    if (reactRoot) {
-      this.rootLifecycleObserver = new MutationObserver(() => {
-        this.rebindScopedTargets();
-        this.checkUrlTransition();
-      });
-      this.rootLifecycleObserver.observe(reactRoot, {
-        childList: true,
-        subtree: false,
-      });
-    }
-
-    window.addEventListener("popstate", this.handlePopState, { passive: true });
-
-    this.rebindScopedTargets();
-    this.scanInitialTweets();
+  start(options: DomObserverOptions = this.options): void {
+    if (this.observer && Object.keys(options).every(
+      (key) => options[key as keyof DomObserverOptions] === this.options[key as keyof DomObserverOptions],
+    )) return;
+    this.stop();
+    this.options = options;
+    if (!options.tweets && !options.navigation && !options.layout) return;
+    this.observer = new MutationObserver((records) => this.handleMutations(records));
+    this.bindTargets();
   }
 
   stop(): void {
-    if (!this.running) return;
-    this.running = false;
-
-    this.rootLifecycleObserver?.disconnect();
-    this.rootLifecycleObserver = null;
-
-    this.scopedObserver?.disconnect();
-    this.scopedObserver = null;
-
-    this.observedHeader = null;
-    this.observedMain = null;
-    this.observedLayers = null;
-
-    window.removeEventListener("popstate", this.handlePopState);
-
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
+    this.observer?.disconnect();
+    this.observer = null;
+    this.header = this.main = this.layers = null;
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
     this.pendingArticles.clear();
-    this.pendingNavSync = false;
-    this.pendingLayoutSync = false;
+    this.pendingNav = this.pendingLayout = false;
   }
 
-  /**
-   * 設定変更時など、現在画面上に表示されている投稿・レイアウトを再調整したいときに呼ぶ。
-   */
-  reconcileVisibleDom(): void {
-    if (!this.running) return;
-    this.rebindScopedTargets();
-    this.callbacks.onNavigationMutated();
-    this.callbacks.onLayoutMutated();
-    this.scanInitialTweets();
-  }
-
-  private rebindScopedTargets(): void {
-    if (!this.scopedObserver) return;
-
-    const nextHeader = document.querySelector(X_SELECTORS.bannerHeader);
-    const nextMain = document.querySelector(X_SELECTORS.mainRoot);
-    const nextLayers = document.querySelector(X_SELECTORS.layersRoot);
-
-    if (
-      nextHeader === this.observedHeader &&
-      nextMain === this.observedMain &&
-      nextLayers === this.observedLayers
-    ) {
-      return;
-    }
-
-    this.scopedObserver.disconnect();
-    this.observedHeader = nextHeader;
-    this.observedMain = nextMain;
-    this.observedLayers = nextLayers;
-
-    if (nextHeader) {
-      this.scopedObserver.observe(nextHeader, { childList: true, subtree: true });
-      this.pendingNavSync = true;
-    }
-    if (nextMain) {
-      this.scopedObserver.observe(nextMain, { childList: true, subtree: true });
-      this.pendingLayoutSync = true;
-    }
-    if (nextLayers) {
-      this.scopedObserver.observe(nextLayers, { childList: true, subtree: true });
-      this.pendingNavSync = true;
-    }
-
-    // 初期マウント時に header / main / #layers がまだ #react-root の深い階層で生成途中の場合のフォールバック
-    if (!nextHeader || !nextMain) {
-      const reactRoot = document.querySelector(X_SELECTORS.reactRoot);
-      if (reactRoot) {
-        this.scopedObserver.observe(reactRoot, { childList: true, subtree: true });
-      }
-    }
-
-    this.scheduleFlush();
-  }
-
-  private scanInitialTweets(): void {
-    const articles = document.querySelectorAll<HTMLElement>(X_SELECTORS.tweetArticle);
-    if (articles.length === 0) return;
+  enqueueArticles(articles: Iterable<HTMLElement>): void {
+    if (!this.observer || !this.options.tweets) return;
     for (const article of articles) {
-      this.pendingArticles.add(article);
+      if (article.isConnected) this.pendingArticles.add(article);
     }
-    this.scheduleFlush();
+    this.schedule();
   }
 
-  private checkUrlTransition(): void {
-    const currentPath = window.location.pathname;
-    if (currentPath !== this.lastPathname) {
-      this.lastPathname = currentPath;
-      this.pendingLayoutSync = true;
-      this.pendingNavSync = true;
-      this.scheduleFlush();
+  reconcileVisibleDom(): void {
+    if (!this.observer) return;
+    this.pendingNav = this.options.navigation;
+    this.pendingLayout = this.options.layout;
+    if (this.options.tweets) {
+      this.enqueueArticles(document.querySelectorAll<HTMLElement>(X_SELECTORS.tweetArticle));
     }
+    this.schedule();
   }
 
-  private handleScopedMutations(mutations: MutationRecord[]): void {
-    // 初期フォールバック監視中に対象ルートが出現した場合はスコープを絞り直す
-    if (!this.observedHeader || !this.observedMain) {
-      if (
-        document.querySelector(X_SELECTORS.bannerHeader) !== this.observedHeader ||
-        document.querySelector(X_SELECTORS.mainRoot) !== this.observedMain
-      ) {
-        this.rebindScopedTargets();
+  /** URL 通知は履歴変更時だけ受け取る。通常の DOM 更新ごとに URL を調べない。 */
+  reconcileRoute(): void {
+    if (!this.observer || !this.options.layout) return;
+    this.pendingLayout = true;
+    this.schedule();
+  }
+
+  private bindTargets(): void {
+    if (!this.observer) return;
+    this.observer.disconnect();
+    this.header = this.options.navigation ? document.querySelector(X_SELECTORS.bannerHeader) : null;
+    this.main = this.options.tweets || this.options.layout ? document.querySelector(X_SELECTORS.mainRoot) : null;
+    this.layers = this.options.navigation || this.options.tweets ? document.querySelector(X_SELECTORS.layersRoot) : null;
+    const roots = new Set<Element>();
+    for (const target of [this.header, this.main, this.layers]) {
+      if (target) roots.add(target);
+    }
+    const ancestors = new Set<Element>([document.documentElement]);
+    for (const target of roots) {
+      for (let parent = target.parentElement; parent; parent = parent.parentElement) ancestors.add(parent);
+    }
+    const missing = (this.options.navigation && !this.header) ||
+      ((this.options.tweets || this.options.layout) && !this.main) ||
+      ((this.options.navigation || this.options.tweets) && !this.layers);
+    if (missing) {
+      // 起動途中や特殊画面のみ。必要なルートが揃うと直ちに範囲を絞り直す。
+      this.observer.observe(document.documentElement, { childList: true, subtree: true });
+    } else {
+      for (const parent of ancestors) {
+        if (!roots.has(parent)) this.observer.observe(parent, { childList: true });
+      }
+      for (const root of roots) this.observer.observe(root, { childList: true, subtree: true });
+    }
+    this.reconcileVisibleDom();
+  }
+
+  private collectArticles(node: Node, output: Set<HTMLElement>): void {
+    if (!(node instanceof Element)) return;
+    if (node.matches(X_SELECTORS.tweetArticle)) output.add(node as HTMLElement);
+    for (const article of node.querySelectorAll<HTMLElement>(X_SELECTORS.tweetArticle)) output.add(article);
+  }
+
+  private handleMutations(records: MutationRecord[]): void {
+    const removed = new Set<HTMLElement>();
+    let needsRebind = [this.header, this.main, this.layers].some((root) => root && !root.isConnected);
+    const missingHeader = this.options.navigation && !this.header;
+    const missingMain = (this.options.tweets || this.options.layout) && !this.main;
+    const missingLayers = (this.options.navigation || this.options.tweets) && !this.layers;
+    const missingSelectors = [
+      missingHeader ? X_SELECTORS.bannerHeader : "",
+      missingMain ? X_SELECTORS.mainRoot : "",
+      missingLayers ? X_SELECTORS.layersRoot : "",
+    ].filter(Boolean).join(",");
+    const layoutSelector = `${X_SELECTORS.primaryColumn}, ${X_SELECTORS.sidebarColumn}`;
+    for (const record of records) {
+      const target = record.target instanceof Element ? record.target : record.target.parentElement;
+      if (target?.closest(".yosoix-action-slot")) continue;
+      const inMain = Boolean(this.main?.contains(record.target));
+      const inLayers = Boolean(this.layers?.contains(record.target));
+      const inTweetScope = inMain || inLayers;
+      if (this.options.navigation && (this.header?.contains(record.target) ||
+        (inLayers && target?.closest(X_SELECTORS.dropdownMenu)))) {
+        this.pendingNav = true;
+      }
+      for (const node of record.removedNodes) {
+        if (this.options.tweets && (inTweetScope || needsRebind)) this.collectArticles(node, removed);
+        if (this.options.layout && inMain && node instanceof Element &&
+          (node.matches(layoutSelector) || node.querySelector(layoutSelector))) this.pendingLayout = true;
+      }
+      for (const node of record.addedNodes) {
+        if (!(node instanceof Element) || node.classList.contains("yosoix-action-slot")) continue;
+        if (!needsRebind && missingSelectors) {
+          needsRebind = node.matches(missingSelectors) || Boolean(node.querySelector(missingSelectors));
+        }
+        if (this.options.navigation && inLayers &&
+          (node.matches(X_SELECTORS.dropdownMenu) || node.querySelector(X_SELECTORS.dropdownMenu))) this.pendingNav = true;
+        if (this.options.tweets && inTweetScope) {
+          const article = node.closest<HTMLElement>(X_SELECTORS.tweetArticle);
+          if (article) this.pendingArticles.add(article);
+          else this.collectArticles(node, this.pendingArticles);
+        }
+        if (this.options.layout && inMain && (node.matches(layoutSelector) || node.querySelector(layoutSelector))) {
+          this.pendingLayout = true;
+        }
       }
     }
-
-    this.checkUrlTransition();
-
-    for (const mutation of mutations) {
-      if (mutation.addedNodes.length === 0) continue;
-
-      for (const added of mutation.addedNodes) {
-        if (!(added instanceof HTMLElement)) continue;
-        // 自身が挿入した YosoiX ボタンの DOM 変更は再処理しない（無限ループ防止）
-        if (added.classList.contains("yosoix-action-slot")) continue;
-
-        // 1. ツイート <article> 自身、子孫の <article>、または既存 <article> 内への遅延要素挿入
-        if (added.matches(X_SELECTORS.tweetArticle)) {
-          this.pendingArticles.add(added);
-        } else {
-          const ancestorArticle = added.closest<HTMLElement>(X_SELECTORS.tweetArticle);
-          if (ancestorArticle) {
-            this.pendingArticles.add(ancestorArticle);
-          } else {
-            const innerArticles = added.querySelectorAll<HTMLElement>(X_SELECTORS.tweetArticle);
-            for (const art of innerArticles) {
-              this.pendingArticles.add(art);
-            }
-          }
-        }
-
-        // 2. ナビゲーション・メニュー関連の更新判定
-        if (
-          (this.observedHeader && this.observedHeader.contains(added)) ||
-          (this.observedLayers && this.observedLayers.contains(added))
-        ) {
-          this.pendingNavSync = true;
-        }
-
-        // 3. 右サイドバー・メインカラム構造の更新判定
-        if (
-          added.matches(`${X_SELECTORS.primaryColumn}, ${X_SELECTORS.sidebarColumn}`) ||
-          added.querySelector(`${X_SELECTORS.primaryColumn}, ${X_SELECTORS.sidebarColumn}`)
-        ) {
-          this.pendingLayoutSync = true;
-        }
-      }
+    for (const article of removed) {
+      if (article.isConnected) removed.delete(article);
+      else this.pendingArticles.delete(article);
     }
-
-    if (this.pendingArticles.size > 0 || this.pendingNavSync || this.pendingLayoutSync) {
-      this.scheduleFlush();
-    }
+    if (removed.size) this.callbacks.onTweetArticlesRemoved?.(removed);
+    if (needsRebind) this.bindTargets();
+    this.schedule();
   }
 
-  private scheduleFlush(): void {
-    if (this.rafId !== null || !this.running) return;
+  private schedule(): void {
+    if (!this.observer || this.rafId !== null ||
+      (!this.pendingNav && !this.pendingLayout && !this.pendingArticles.size)) return;
     this.rafId = requestAnimationFrame(() => {
       this.rafId = null;
-      this.flush();
-    });
-  }
-
-  private flush(): void {
-    if (!this.running) return;
-
-    if (this.pendingNavSync) {
-      this.pendingNavSync = false;
-      this.callbacks.onNavigationMutated();
-    }
-
-    if (this.pendingLayoutSync) {
-      this.pendingLayoutSync = false;
-      this.callbacks.onLayoutMutated();
-    }
-
-    if (this.pendingArticles.size > 0) {
+      if (this.pendingNav) {
+        this.pendingNav = false;
+        this.callbacks.onNavigationMutated();
+      }
+      if (this.pendingLayout) {
+        this.pendingLayout = false;
+        this.callbacks.onLayoutMutated();
+      }
       const batch = new Set<HTMLElement>();
       for (const article of this.pendingArticles) {
-        if (article.isConnected) {
-          batch.add(article);
-        }
+        this.pendingArticles.delete(article);
+        if (article.isConnected) batch.add(article);
+        if (batch.size >= 25) break;
       }
-      this.pendingArticles.clear();
-
-      if (batch.size > 0) {
-        this.callbacks.onTweetArticlesAdded(batch);
-      }
-    }
+      if (batch.size) this.callbacks.onTweetArticlesAdded(batch);
+      this.schedule();
+    });
   }
 }

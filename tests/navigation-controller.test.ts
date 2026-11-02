@@ -12,7 +12,9 @@ describe("nav-items: matchNavItemLink", () => {
     return a;
   }
 
-  it("定義された全14項目がそれぞれのURL/ホスト/testidで正しくマッチする", () => {
+  it("定義された項目がそれぞれのURL/ホスト/testidで正しくマッチする", () => {
+    expect(matchNavItemLink(createAnchor("/compose/post", "SideNav_NewTweet_Button"))).toBe("post");
+    expect(matchNavItemLink(createAnchor("/compose/tweet"))).toBe("post");
     // 0. premium
     expect(matchNavItemLink(createAnchor("/i/premium_sign_up"))).toBe("premium");
     expect(matchNavItemLink(createAnchor("/i/premium_tier_switch"))).toBe("premium");
@@ -65,7 +67,7 @@ describe("nav-items: matchNavItemLink", () => {
     expect(matchNavItemLink(createAnchor("/i/spaces/start"))).toBe("spaces");
   });
 
-  it("保護対象の主要UI（ホーム・通知・プロフィール・投稿ボタン等）は絶対にマッチしない", () => {
+  it("保護対象の主要UI（ホーム・通知・プロフィール等）は絶対にマッチしない", () => {
     for (const testId of PROTECTED_NAV_TEST_IDS) {
       const anchor = createAnchor("/home", testId);
       expect(matchNavItemLink(anchor)).toBeNull();
@@ -142,18 +144,31 @@ describe("navigation-controller: NavigationController", () => {
     expect(document.querySelectorAll("[data-yosoix-nav-hidden]")).toHaveLength(0);
     expect(document.documentElement.hasAttribute("data-yosoix-hide-nav")).toBe(false);
   });
+
+  it("nav外の投稿ボタンだけを隠し、アカウント切替や投稿フォームには触れない", () => {
+    const header = document.querySelector("header")!;
+    header.insertAdjacentHTML("beforeend", `<div id="post-controls"><button data-testid="SideNav_NewTweet_Button">Post</button><button data-testid="SideNav_AccountSwitcher_Button">Account</button></div>`);
+    document.body.insertAdjacentHTML("beforeend", '<form><button data-testid="tweetButtonInline">投稿</button></form>');
+    controller.updateConfig(true, ["post"]);
+    expect(header.querySelector('[data-testid="SideNav_NewTweet_Button"]')?.getAttribute("data-yosoix-nav-hidden")).toBe("post");
+    expect(document.querySelectorAll("[data-yosoix-nav-hidden]")).toHaveLength(1);
+    expect(document.getElementById("post-controls")?.hasAttribute("data-yosoix-nav-hidden")).toBe(false);
+    controller.updateConfig(true, []);
+    expect(document.querySelectorAll("[data-yosoix-nav-hidden]")).toHaveLength(0);
+  });
 });
 
 describe("default nav item settings", () => {
-  it("デフォルト非表示設定には Explore と History 以外の全項目が含まれる", () => {
+  it("Explore・History・投稿ボタンはデフォルト表示し、それ以外を非表示にする", () => {
     const hiddenSet = new Set(DEFAULT_HIDDEN_NAV_ITEMS);
 
     expect(hiddenSet.has("explore")).toBe(false);
     expect(hiddenSet.has("history")).toBe(false);
+    expect(hiddenSet.has("post")).toBe(false);
 
     const expectedIncluded = NAV_ITEM_DEFINITIONS
       .map((d) => d.id)
-      .filter((id) => id !== "explore" && id !== "history");
+      .filter((id) => id !== "explore" && id !== "history" && id !== "post");
 
     expect(DEFAULT_HIDDEN_NAV_ITEMS).toHaveLength(expectedIncluded.length);
     for (const id of expectedIncluded) {
