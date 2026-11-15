@@ -72,7 +72,7 @@ describe("ツイート下部のボタンの並び順と非表示", () => {
     applyTweetActionSettings({ ...DEFAULT_SETTINGS, enabled: false });
     expect(getComputedStyle(document.getElementById("share")!).display).not.toBe("none");
     expect(getComputedStyle(document.getElementById("analytics")!).display).not.toBe("none");
-    expect(getComputedStyle(document.getElementById("like")!).order).toBe("");
+    expect(getComputedStyle(document.getElementById("like")!).order).toBe("0");
   });
 
   it("標準ボタンと追加ボタンを同じ伸縮幅・余白・中央揃えにし、非表示項目の枠を除く", () => {
@@ -85,7 +85,7 @@ describe("ツイート下部のボタンの並び順と非表示", () => {
         const css = getComputedStyle(document.getElementById(id)!);
         expect(css.display).toBe("flex");
         expect([css.flexGrow, css.flexShrink, css.flexBasis]).toEqual(["1", "1", "0px"]);
-        expect(css.minWidth).toBe("0");
+        expect(css.minWidth).toBe("0px");
         expect(css.marginLeft).toBe("0px");
         expect(css.justifyContent).toBe("center");
         expect(css.width).toBe("auto");

@@ -14,11 +14,11 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.313",
+    "@types/chrome": "^0.3.7",
     "@types/node": "^26.6.6",
-    "esbuild": "^0.25.0",
-    "jsdom": "^26.0.0",
-    "typescript": "^5.8.2",
-    "vitest": "^3.0.7"
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
   }
 }

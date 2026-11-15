@@ -1,5 +1,5 @@
 // @vitest-environment-options {"url":"https://x.com/home"}
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { installPageBridge } from "../src/bridge/page-bridge";
 import { MAX_RESPONSE_BYTES } from "../src/bridge/response-parser";
 import { BRIDGE_NAMESPACE, type TweetMediaCacheEntry } from "../src/core/types";
@@ -28,7 +28,7 @@ function configure(captureEnabled = true, includeMedia = true, trackNavigation =
 describe("Page Bridge の負荷制御", () => {
   let cleanup: () => void;
   let clock: ReturnType<typeof mockFrames>;
-  let send: ReturnType<typeof vi.spyOn>;
+  let send: MockInstance<typeof window.postMessage>;
   beforeEach(() => {
     setVisibility("visible");
     clock = mockFrames();
